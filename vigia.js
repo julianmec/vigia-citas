@@ -1,6 +1,7 @@
 // Vigía de citas DIAN (Videoatención · Devoluciones)
-// Corre en GitHub Actions cada ~5 minutos. Abre la página en un navegador real,
-// hace el recorrido y, si aparece agenda, avisa al celular por ntfy con una captura.
+// Corre en GitHub Actions cada ~5 minutos. Abre la página en un navegador real, hace el
+// recorrido de selección (sin datos personales ni CAPTCHA) y deja el resultado en
+// salida/resumen.json. El workflow crea un issue (te llega correo) si aparece agenda.
 'use strict';
 
 const { chromium } = require('playwright-core');
@@ -8,44 +9,50 @@ const fs = require('fs');
 const path = require('path');
 
 const URL_INICIO = process.env.URL_INICIO || 'https://agendamiento.dian.gov.co/';
-const NTFY_SERVER = (process.env.NTFY_SERVER || 'https://ntfy.sh').replace(/\/$/, '');
-const TOPIC = (process.env.NTFY_TOPIC || '').trim();
+const HOST = new URL(URL_INICIO).host;
 const FORZAR_AVISO = /^(1|true)$/i.test(process.env.FORZAR_AVISO || '');
 const SALIDA = path.join(__dirname, 'salida');
-const ESPERA_RESULTADO_MS = 6000;
+const ESPERA_RESULTADO_MS = 7000;
 
-// Recorrido, en orden. "opcional": si no aparece, se salta. "espera": segundos máximos.
+// Recorrido real de la página. "opcional": si no aparece, se salta. "espera": segundos máximos.
+// tipo "select": escoge la opción de una lista desplegable en vez de hacer clic.
 const PASOS = [
-  { nombre: 'agendamiento', texto: /agendamiento de citas|solicitar cita|asignaci[oó]n de citas/i, opcional: true, espera: 20 },
-  { nombre: 'iniciar', texto: /^iniciar solicitud$/i, opcional: true, espera: 5 },
-  { nombre: 'aviso', texto: /^(aceptar|entendido|acepto)$/i, opcional: true, espera: 4 },
+  { nombre: 'agendar', texto: /^(agendar|solicitar) cita$/i, espera: 30 },
+  { nombre: 'aviso', texto: /^(aceptar|entendido|acepto|continuar|iniciar solicitud)$/i, opcional: true, espera: 5 },
   { nombre: 'persona-natural', texto: /persona natural/i, espera: 25 },
   { nombre: 'videoatencion', texto: /video ?atenci[oó]n|no presencial/i, espera: 25 },
   { nombre: 'devoluciones', texto: /devoluci[oó]n/i, espera: 25 },
+  { nombre: 'tramite', tipo: 'select', texto: /devoluci[oó]n/i, opcional: true, espera: 8 },
+  { nombre: 'siguiente', texto: /^siguiente$/i, espera: 15 },
 ];
 
 // Frases que significan "no hay agenda".
 const SIN_CUPO = /no (hay|existen?|se encontr\w*|cuenta con|tiene|se dispone de)\b.{0,60}?(disponib|agenda|cita|cupo|horario|turno)|sin (disponibilidad|agenda|cupos?|citas|horarios)|agotad/i;
-const CAPTCHA = /captcha|no soy un robot|verifica que eres humano/i;
+const CAPTCHA = /no soy un robot|verifica que eres humano/i;
 const BLOQUEO = /access denied|acceso denegado|forbidden|request (was )?blocked|solicitud (fue )?bloqueada|just a moment|checking your browser|attention required|not available in your (country|region)/i;
 
 class Fin extends Error {
   constructor(codigo, mensaje) { super(mensaje); this.codigo = codigo; }
 }
 
-/* ------------- Se ejecuta DENTRO de la página: marca el mejor elemento ------------- */
+/* ---------------- Funciones que se ejecutan DENTRO de la página ---------------- */
 function marcar({ src, flags }) {
   const re = new RegExp(src, flags);
   const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
-  const CLICABLE = 'button,a[href],[role="button"],[role="tab"],[role="radio"],[role="option"],[role="menuitem"],[role="link"],label,option,mat-card,mat-option,[onclick],[tabindex]:not([tabindex="-1"]),input[type="button"],input[type="submit"],input[type="radio"]';
+  const CLICABLE = 'button,a[href],[role="button"],[role="tab"],[role="radio"],[role="option"],[role="menuitem"],[role="link"],label,option,[onclick],[tabindex]:not([tabindex="-1"]),input[type="button"],input[type="submit"],input[type="radio"],[tipo="Control"]';
   if (!document.body) return null;
   document.querySelectorAll('[data-vigia]').forEach((e) => e.removeAttribute('data-vigia'));
-  const visible = (el) => {
-    if (el.tagName === 'OPTION') return true;
-    const r = el.getBoundingClientRect();
-    if (r.width === 0 || r.height === 0) return false;
+  const vis = (el) => {
+    if (!el || !el.getClientRects().length) return false;
     const cs = getComputedStyle(el);
     return cs.visibility !== 'hidden' && cs.display !== 'none' && cs.opacity !== '0';
+  };
+  const visible = (el) => {
+    if (el.tagName === 'OPTION') {
+      const sel = el.closest('select');
+      return !!sel && (vis(sel) || vis(sel.parentElement));
+    }
+    return vis(el);
   };
   const esClicable = (el) => {
     for (let n = el, d = 0; n && n !== document.body && d < 4; n = n.parentElement, d++) {
@@ -62,18 +69,70 @@ function marcar({ src, flags }) {
     if (!t || t.length > 90 || !re.test(t)) continue;
     if (el.closest('[disabled],[aria-disabled="true"]')) continue;
     if (!visible(el)) continue;
-    const p = t.length + (esClicable(el) ? 0 : 1000);
+    const p = t.length + (esClicable(el) ? 0 : 1000) + (el.tagName === 'OPTION' ? 5 : 0);
     if (p < puntaje) { mejor = el; puntaje = p; }
   }
   if (!mejor) return null;
   mejor.setAttribute('data-vigia', '1');
-  return { puntaje, texto: norm(mejor.innerText || mejor.value || '').slice(0, 90), tag: mejor.tagName };
+  return { puntaje, texto: norm(mejor.innerText || mejor.textContent || mejor.value || '').slice(0, 90), tag: mejor.tagName };
+}
+
+function elegirOpcion({ src, flags }) {
+  const re = new RegExp(src, flags);
+  const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
+  const vis = (el) => {
+    if (!el || !el.getClientRects().length) return false;
+    const cs = getComputedStyle(el);
+    return cs.visibility !== 'hidden' && cs.display !== 'none';
+  };
+  for (const sel of document.querySelectorAll('select')) {
+    if (!(vis(sel) || vis(sel.parentElement))) continue;
+    const actual = sel.options[sel.selectedIndex];
+    if (actual && re.test(norm(actual.text))) return { ya: true, texto: norm(actual.text) };
+    const opciones = Array.from(sel.options).filter((o) => !o.disabled && re.test(norm(o.text)));
+    if (!opciones.length) continue;
+    opciones.sort((a, b) => norm(a.text).length - norm(b.text).length);
+    sel.value = opciones[0].value;
+    sel.dispatchEvent(new Event('input', { bubbles: true }));
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    return { ya: false, texto: norm(opciones[0].text) };
+  }
+  return null;
+}
+
+// Foto de la pantalla en texto: botones/controles visibles y listas con sus opciones.
+function listarControles() {
+  const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
+  const vis = (el) => {
+    if (!el || !el.getClientRects().length) return false;
+    const cs = getComputedStyle(el);
+    return cs.visibility !== 'hidden' && cs.display !== 'none' && cs.opacity !== '0';
+  };
+  const RUIDO = /facebook|instagram|linkedin|tiktok|twitter|youtube|^img|contact|linea|nit$|sede(principal)?$|horario|titulocontac|edicio|nivelcentral|serviciolinea|footer|header/i;
+  const out = [];
+  for (const el of document.querySelectorAll('[tipo="Control"], button, a[href], [role="button"], label')) {
+    const nombre = el.getAttribute('nombre') || '';
+    if (RUIDO.test(nombre) || !vis(el)) continue;
+    const t = norm(el.innerText || el.value || '');
+    if (!t || t.length > 80) continue;
+    out.push(`${nombre || el.tagName.toLowerCase()}: ${t}`);
+    if (out.length >= 50) break;
+  }
+  for (const sel of document.querySelectorAll('select')) {
+    if (!(vis(sel) || vis(sel.parentElement))) continue;
+    const actual = sel.options[sel.selectedIndex];
+    const opciones = Array.from(sel.options).map((o) => norm(o.text)).slice(0, 30);
+    out.push(`LISTA ${sel.getAttribute('nombre') || sel.id || sel.className}: [${actual ? norm(actual.text) : ''}] ⟨${opciones.join(' / ')}⟩`);
+  }
+  return [...new Set(out)];
 }
 
 /* ------------------------------ Utilidades ------------------------------ */
+const framesPropios = (page) => page.frames().filter((f) => f === page.mainFrame() || f.url().includes(HOST));
+
 async function buscar(page, re) {
   let mejor = null;
-  for (const frame of page.frames()) {
+  for (const frame of framesPropios(page)) {
     let r = null;
     try { r = await frame.evaluate(marcar, { src: re.source, flags: re.flags }); } catch (e) { continue; }
     if (r && (!mejor || r.puntaje < mejor.r.puntaje)) mejor = { frame, r };
@@ -81,11 +140,11 @@ async function buscar(page, re) {
   return mejor;
 }
 
-async function esperar(page, re, segundos) {
+async function esperar(page, fn, segundos) {
   const fin = Date.now() + segundos * 1000;
   while (Date.now() < fin) {
-    const m = await buscar(page, re);
-    if (m) return m;
+    const r = await fn();
+    if (r) return r;
     await page.waitForTimeout(700);
   }
   return null;
@@ -112,9 +171,19 @@ async function clic({ frame, r }) {
   }
 }
 
+async function elegir(page, re) {
+  for (const frame of framesPropios(page)) {
+    try {
+      const r = await frame.evaluate(elegirOpcion, { src: re.source, flags: re.flags });
+      if (r) return r;
+    } catch (e) { /* frame cerrado */ }
+  }
+  return null;
+}
+
 async function lineas(page) {
   const out = [];
-  for (const frame of page.frames()) {
+  for (const frame of framesPropios(page)) {
     try {
       const ls = await frame.evaluate(() =>
         (document.body ? document.body.innerText : '')
@@ -127,51 +196,36 @@ async function lineas(page) {
   return out;
 }
 
+async function pantalla(page) {
+  const out = [];
+  for (const frame of framesPropios(page)) {
+    try { out.push(...(await frame.evaluate(listarControles))); } catch (e) { /* ignorar */ }
+  }
+  return out;
+}
+
+// Solo cuenta como CAPTCHA si el recuadro o el reto están realmente a la vista.
 async function hayCaptcha(page) {
   for (const frame of page.frames()) {
     const u = frame.url();
-    const retoVisible =
-      (/recaptcha\/(api2|enterprise)\/anchor/.test(u) && !/size=invisible/.test(u)) ||
-      /recaptcha\/(api2|enterprise)\/bframe|hcaptcha\.com|challenges\.cloudflare\.com/.test(u);
-    if (!retoVisible) continue;
+    const ancla = /recaptcha\/(api2|enterprise)\/anchor/.test(u) && !/size=invisible/.test(u);
+    const reto = /recaptcha\/(api2|enterprise)\/bframe|hcaptcha\.com|challenges\.cloudflare\.com/.test(u);
+    if (!ancla && !reto) continue;
     try {
       const el = await frame.frameElement();
-      if (await el.isVisible()) return true;
+      const caja = await el.boundingBox();
+      if (caja && caja.width > 50 && caja.height > 50 && (await el.isVisible())) return true;
     } catch (e) { /* ignorar */ }
   }
-  return CAPTCHA.test((await lineas(page)).join(' '));
+  try {
+    return CAPTCHA.test(await page.mainFrame().evaluate(() => (document.body ? document.body.innerText : '')));
+  } catch (e) { return false; }
 }
 
 async function captura(page, nombre, completa = false) {
   try {
     await page.screenshot({ path: path.join(SALIDA, `${nombre}.png`), fullPage: completa });
   } catch (e) { /* no detener por una captura */ }
-}
-
-async function avisar({ titulo, mensaje, prioridad, imagen }) {
-  if (!TOPIC) { console.log('NTFY_TOPIC vacío: no se envía aviso.'); return false; }
-  const q = new URLSearchParams({
-    title: titulo,
-    message: mensaje,
-    priority: prioridad,
-    tags: prioridad === 'urgent' ? 'rotating_light' : 'robot',
-    click: URL_INICIO,
-  });
-  let metodo = 'POST';
-  let cuerpo = mensaje;
-  if (imagen && fs.existsSync(imagen)) {
-    metodo = 'PUT';
-    cuerpo = fs.readFileSync(imagen);
-    q.set('filename', 'pantalla.png');
-  }
-  try {
-    const r = await fetch(`${NTFY_SERVER}/${encodeURIComponent(TOPIC)}?${q}`, { method: metodo, body: cuerpo });
-    console.log(`Aviso ntfy: HTTP ${r.status}`);
-    return r.ok;
-  } catch (e) {
-    console.log(`Aviso ntfy falló: ${e.message}`);
-    return false;
-  }
 }
 
 function horaBogota() {
@@ -189,29 +243,23 @@ async function main() {
   const context = await browser.newContext({ locale: 'es-CO', timezoneId: 'America/Bogota', viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
 
-  // Registro de lo que la página pide al servidor (sirve para afinar el robot).
+  // Registro de lo que la página consulta al servidor (sirve para afinar el robot).
   const red = [];
   page.on('response', async (resp) => {
     const req = resp.request();
     const tipo = req.resourceType();
-    if (!['xhr', 'fetch', 'document', 'eventsource'].includes(tipo)) return;
-    const item = { tipo, metodo: req.method(), url: req.url(), estado: resp.status(), ct: resp.headers()['content-type'] || '' };
-    if ((tipo === 'xhr' || tipo === 'fetch') && /json|text|xml/i.test(item.ct)) {
-      try { item.respuesta = (await resp.text()).slice(0, 3000); } catch (e) { /* sin cuerpo */ }
+    if (!['xhr', 'fetch', 'document'].includes(tipo)) return;
+    if (/google|gstatic|analytics|Plantillas\//.test(req.url())) return;
+    const item = { tipo, metodo: req.method(), url: req.url(), estado: resp.status() };
+    if (tipo !== 'document') {
+      try { item.respuesta = (await resp.text()).slice(0, 4000); } catch (e) { /* sin cuerpo */ }
       const envio = req.postData();
       if (envio) item.envio = envio.slice(0, 1500);
     }
     red.push(item);
   });
-  let framesWs = 0;
-  page.on('websocket', (ws) => {
-    red.push({ tipo: 'websocket', url: ws.url() });
-    ws.on('framereceived', (f) => {
-      if (framesWs++ < 40) red.push({ tipo: 'ws-recibido', datos: String(f.payload).slice(0, 600) });
-    });
-  });
 
-  const resumen = { hora: horaBogota(), url: URL_INICIO, pasos: [], veredicto: null, detalle: '' };
+  const resumen = { hora: horaBogota(), url: URL_INICIO, prueba: FORZAR_AVISO, pasos: [], veredicto: null, detalle: '' };
   let codigoSalida = 0;
 
   try {
@@ -223,44 +271,53 @@ async function main() {
 
     let antes = null;
     for (const [i, p] of PASOS.entries()) {
-      if (await hayCaptcha(page)) throw new Fin('captcha', 'La página pidió un CAPTCHA.');
-      const m = await esperar(page, p.texto, p.espera);
-      if (!m) {
-        resumen.pasos.push({ paso: p.nombre, encontrado: false });
-        if (p.opcional) continue;
-        throw new Fin('paso-no-encontrado', `No encontré el paso "${p.nombre}".`);
+      if (await hayCaptcha(page)) throw new Fin('captcha', 'La página mostró un CAPTCHA antes de la disponibilidad.');
+      const registro = { paso: p.nombre };
+      resumen.pasos.push(registro);
+      if (p.tipo === 'select') {
+        const r = await esperar(page, () => elegir(page, p.texto), p.espera);
+        registro.encontrado = !!r;
+        if (!r) { if (p.opcional) continue; throw new Fin('paso-no-encontrado', `No encontré la opción "${p.nombre}".`); }
+        registro.texto = r.texto;
+        registro.como = r.ya ? 'ya-elegida' : 'lista';
+        if (r.ya) continue;
+        antes = await lineas(page);
+      } else {
+        const m = await esperar(page, () => buscar(page, p.texto), p.espera);
+        registro.encontrado = !!m;
+        if (!m) {
+          if (p.opcional) continue;
+          registro.pantalla = await pantalla(page);
+          throw new Fin('paso-no-encontrado', `No encontré el paso "${p.nombre}".`);
+        }
+        antes = await lineas(page);
+        registro.texto = m.r.texto;
+        registro.como = await clic(m);
       }
-      antes = await lineas(page);
-      const como = await clic(m);
-      resumen.pasos.push({ paso: p.nombre, encontrado: true, texto: m.r.texto, como });
       await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
       await page.waitForTimeout(1500);
+      registro.pantalla = await pantalla(page);
       await captura(page, `${String(i + 1).padStart(2, '0')}-${p.nombre}`);
     }
 
     await page.waitForTimeout(ESPERA_RESULTADO_MS);
-    if (await hayCaptcha(page)) throw new Fin('captcha', 'La página pidió un CAPTCHA.');
+    if (await hayCaptcha(page)) throw new Fin('captcha', 'La página mostró un CAPTCHA antes de la disponibilidad.');
 
     // Solo se analiza el texto que apareció después del último clic.
     const previas = new Set(antes || []);
     const nuevo = (await lineas(page)).filter((l) => !previas.has(l)).join(' | ');
-    resumen.textoNuevo = nuevo.slice(0, 2000);
+    resumen.textoNuevo = nuevo.slice(0, 2500);
+    resumen.pantallaFinal = await pantalla(page);
     await captura(page, 'resultado');
     await captura(page, 'resultado-completo', true);
 
     if (!nuevo) {
       resumen.veredicto = 'sin-cambio';
-      resumen.detalle = 'La pantalla no cambió después de Devoluciones.';
+      resumen.detalle = 'La pantalla no cambió después del último paso.';
     } else if (SIN_CUPO.test(nuevo)) {
       resumen.veredicto = 'sin-agenda';
     } else {
       resumen.veredicto = 'posible-cita';
-      await avisar({
-        titulo: 'Cita DIAN: posible agenda',
-        mensaje: `Puede haber citas de devoluciones (${resumen.hora}). Entra ya a agendamiento.dian.gov.co y agenda.`,
-        prioridad: 'urgent',
-        imagen: path.join(SALIDA, 'resultado.png'),
-      });
     }
   } catch (e) {
     const texto = (await lineas(page).catch(() => [])).join(' ');
@@ -275,18 +332,11 @@ async function main() {
       resumen.veredicto = 'bloqueo';
       resumen.detalle = 'La página parece bloquear esta conexión. ' + resumen.detalle;
     }
-    resumen.textoPagina = texto.slice(0, 2000);
+    resumen.textoPagina = texto.slice(0, 2500);
+    resumen.pantallaFinal = await pantalla(page).catch(() => []);
     await captura(page, 'error', true);
+    await captura(page, 'resultado');
     codigoSalida = 1;
-  }
-
-  if (FORZAR_AVISO) {
-    await avisar({
-      titulo: 'Vigía DIAN: prueba',
-      mensaje: `Prueba del robot (${resumen.hora}). Resultado: ${resumen.veredicto}. Así te llegará el aviso cuando haya agenda.`,
-      prioridad: 'high',
-      imagen: path.join(SALIDA, fs.existsSync(path.join(SALIDA, 'resultado.png')) ? 'resultado.png' : 'error.png'),
-    });
   }
 
   try { fs.writeFileSync(path.join(SALIDA, 'resultado.html'), await page.content()); } catch (e) { /* ignorar */ }
@@ -294,15 +344,14 @@ async function main() {
   fs.writeFileSync(path.join(SALIDA, 'resumen.json'), JSON.stringify(resumen, null, 2));
   await browser.close();
 
-  const linea = `Veredicto: ${resumen.veredicto} | ${resumen.detalle || ''} | Pasos: ${resumen.pasos.map((p) => `${p.paso}${p.encontrado ? '✓' : '✗'}`).join(' ')}`;
-  console.log(linea);
+  console.log(`Veredicto: ${resumen.veredicto} | ${resumen.detalle || ''} | Pasos: ${resumen.pasos.map((p) => `${p.paso}${p.encontrado ? '✓' : '✗'}`).join(' ')}`);
   if (resumen.textoNuevo) console.log(`Texto nuevo: ${resumen.textoNuevo.slice(0, 500)}`);
   if (process.env.GITHUB_STEP_SUMMARY) {
     fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
       `### ${resumen.veredicto}\n\n${resumen.detalle || ''}\n\n` +
-      `Pasos: ${resumen.pasos.map((p) => `${p.paso} ${p.encontrado ? '✓' : '✗'}`).join(' · ')}\n\n` +
-      (resumen.textoNuevo ? `Texto nuevo: ${resumen.textoNuevo.slice(0, 800)}\n` : ''));
+      `Pasos: ${resumen.pasos.map((p) => `${p.paso} ${p.encontrado ? '✓' : '✗'}`).join(' · ')}\n`);
   }
+  // Un error del robot no debe tapar el aviso: el workflow decide con resumen.json.
   process.exitCode = codigoSalida;
 }
 

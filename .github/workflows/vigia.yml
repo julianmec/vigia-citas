@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       forzar_aviso:
-        description: 'Enviar un aviso de prueba al celular con la captura'
+        description: 'Enviar un aviso de prueba (te llega por correo)'
         type: boolean
         default: false
   push:
@@ -14,16 +14,20 @@ on:
     paths: ['vigia.js', 'package.json', '.github/workflows/vigia.yml']
 
 permissions:
-  contents: write   # solo para publicar las capturas en la rama "resultados"
+  contents: write   # publicar las capturas en la rama "resultados"
+  issues: write     # crear el aviso (GitHub te lo manda por correo)
 
 concurrency:
   group: vigia-citas
   cancel-in-progress: false
 
+env:
+  AVISOS: 'off'     # se enciende cuando el robot quede verificado contra la página real
+
 jobs:
   revisar:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
 
@@ -31,16 +35,18 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Revisar agenda
+        continue-on-error: true
         run: node vigia.js
         env:
-          # Para no dejar el tema visible, créalo como secreto NTFY_TOPIC y borra el valor de respaldo.
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC || vars.NTFY_TOPIC || 'dian-jt-1hf2yo78' }}
           FORZAR_AVISO: ${{ inputs.forzar_aviso || (github.event_name == 'push' && contains(github.event.head_commit.message, '[aviso]')) }}
 
       - name: Publicar capturas de la última corrida (rama "resultados")
+        id: publicar
         if: always()
         run: |
-          [ -d salida ] || exit 0
+          [ -f salida/resumen.json ] || exit 0
+          PREVIO=$( (git fetch -q origin resultados && git show FETCH_HEAD:resumen.json | jq -r '.veredicto // empty') 2>/dev/null || true)
+          echo "previo=$PREVIO" >> "$GITHUB_OUTPUT"
           cd salida
           git init -q -b resultados
           git config user.name "vigia-bot"
@@ -48,3 +54,30 @@ jobs:
           git add -A
           git commit -qm "Corrida ${{ github.run_number }} (${{ github.event_name }})"
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" resultados
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Avisar por correo (issue de GitHub)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIO: ${{ steps.publicar.outputs.previo }}
+          SHA: ${{ steps.publicar.outputs.sha }}
+          DUENO: ${{ github.repository_owner }}
+          REPO: ${{ github.repository }}
+        run: |
+          [ -f salida/resumen.json ] || exit 0
+          V=$(jq -r '.veredicto' salida/resumen.json)
+          PRUEBA=$(jq -r '.prueba // false' salida/resumen.json)
+          HORA=$(jq -r '.hora' salida/resumen.json)
+          IMG="https://github.com/$REPO/blob/$SHA/resultado.png?raw=true"
+          if [ "$PRUEBA" = "true" ]; then
+            TITULO="Prueba del vigía de citas DIAN"
+            CUERPO="@$DUENO Esto es una **prueba**: así te va a llegar el aviso cuando aparezca agenda. Resultado de esta revisión ($HORA): **$V**."
+          elif [ "$V" = "posible-cita" ] && [ "$AVISOS" = "on" ] && [ "$PREVIO" != "posible-cita" ]; then
+            TITULO="🚨 Puede haber citas DIAN de devoluciones ($HORA)"
+            CUERPO="@$DUENO **Entra ya** a https://agendamiento.dian.gov.co y agenda: Agendar cita → Persona natural → Videoatención → Devoluciones."
+          else
+            exit 0
+          fi
+          printf '%s\n\n![Lo que vio el robot](%s)\n\nCierra este aviso cuando ya no lo necesites.\n' "$CUERPO" "$IMG" > cuerpo.md
+          gh issue create --repo "$REPO" --title "$TITULO" --body-file cuerpo.md
