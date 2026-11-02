@@ -1,0 +1,2 @@
+Al cambiar este archivo con "[aviso]" en el mensaje del commit se envía un aviso de prueba.
+Última prueba: 2026-11-02 09:44

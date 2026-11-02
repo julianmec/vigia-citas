@@ -11,7 +11,7 @@ on:
         default: false
   push:
     branches: [main]
-    paths: ['vigia.js', 'package.json', '.github/workflows/vigia.yml']
+    paths: ['vigia.js', 'package.json', '.github/workflows/vigia.yml', 'prueba-aviso.txt']
 
 permissions:
   contents: write   # publicar las capturas en la rama "resultados"
