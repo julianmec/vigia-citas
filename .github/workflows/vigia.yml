@@ -71,11 +71,22 @@ jobs:
           HORA=$(jq -r '.hora' salida/resumen.json)
           IMG="https://github.com/$REPO/blob/$SHA/resultado.png?raw=true"
           if [ "$PRUEBA" = "true" ]; then
-            TITULO="Prueba del vigía de citas DIAN"
-            CUERPO="@$DUENO Esto es una **prueba**: así te va a llegar el aviso cuando aparezca agenda. Resultado de esta revisión ($HORA): **$V**."
+            # El título contiene "Puede haber citas" para que también dispare la alarma del iPhone.
+            TITULO="Puede haber citas DIAN - PRUEBA, no es real ($HORA)"
+            CUERPO="@$DUENO Esto es una **prueba**: así te va a llegar el aviso cuando aparezca agenda. Resultado real de esta revisión: **$V**."
           elif [ "$V" = "posible-cita" ] && [ "$AVISOS" = "on" ] && [ "$PREVIO" != "posible-cita" ]; then
             TITULO="🚨 Puede haber citas DIAN de devoluciones ($HORA)"
             CUERPO="@$DUENO **Entra ya** a https://agendamiento.dian.gov.co y en Safari toca **••• → Marcadores → Cita DIAN** (te deja en ciudad, sede, fecha y hora). Sin marcador: Agendar cita → Persona Natural → Videoatención → Devoluciones → trámite → Siguiente."
+          elif [ "$V" = "posible-cita" ] && [ "$AVISOS" = "on" ]; then
+            # La agenda sigue abierta: hasta 3 recordatorios (uno por revisión) mientras el aviso siga abierto.
+            N=$(gh issue list --repo "$REPO" --state open --json number,title \
+              --jq '[.[] | select(.title | test("Puede haber citas")) | select(.title | test("PRUEBA") | not)][0].number // empty')
+            [ -n "$N" ] || exit 0
+            C=$(gh issue view "$N" --repo "$REPO" --json comments --jq '.comments | length')
+            [ "$C" -lt 3 ] || exit 0
+            printf '@%s Sigue habiendo agenda (%s). Entra ya: Safari → ••• → Marcadores → Cita DIAN.\n\n![Lo que vio el robot](%s)\n' "$DUENO" "$HORA" "$IMG" > comentario.md
+            gh issue comment "$N" --repo "$REPO" --body-file comentario.md
+            exit 0
           else
             exit 0
           fi
