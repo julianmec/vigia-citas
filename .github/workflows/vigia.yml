@@ -1,0 +1,50 @@
+name: Vigía de citas DIAN
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # cada 5 min (GitHub puede retrasarlo unos minutos)
+  workflow_dispatch:
+    inputs:
+      forzar_aviso:
+        description: 'Enviar un aviso de prueba al celular con la captura'
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths: ['vigia.js', 'package.json', '.github/workflows/vigia.yml']
+
+permissions:
+  contents: write   # solo para publicar las capturas en la rama "resultados"
+
+concurrency:
+  group: vigia-citas
+  cancel-in-progress: false
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+
+      - name: Revisar agenda
+        run: node vigia.js
+        env:
+          # Para no dejar el tema visible, créalo como secreto NTFY_TOPIC y borra el valor de respaldo.
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC || vars.NTFY_TOPIC || 'dian-jt-1hf2yo78' }}
+          FORZAR_AVISO: ${{ inputs.forzar_aviso || (github.event_name == 'push' && contains(github.event.head_commit.message, '[aviso]')) }}
+
+      - name: Publicar capturas de la última corrida (rama "resultados")
+        if: always()
+        run: |
+          [ -d salida ] || exit 0
+          cd salida
+          git init -q -b resultados
+          git config user.name "vigia-bot"
+          git config user.email "vigia-bot@users.noreply.github.com"
+          git add -A
+          git commit -qm "Corrida ${{ github.run_number }} (${{ github.event_name }})"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" resultados

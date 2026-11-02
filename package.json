@@ -1,0 +1,11 @@
+{
+  "name": "vigia-citas",
+  "private": true,
+  "description": "Revisa cada pocos minutos si hay agenda de videoatención para devoluciones en la DIAN y avisa al celular por ntfy.",
+  "scripts": {
+    "revisar": "node vigia.js"
+  },
+  "dependencies": {
+    "playwright-core": "^1.64.1"
+  }
+}
