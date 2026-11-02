@@ -18,16 +18,15 @@ const ESPERA_RESULTADO_MS = 7000;
 // tipo "select": escoge la opción de una lista desplegable en vez de hacer clic.
 const PASOS = [
   { nombre: 'agendar', texto: /^(agendar|solicitar) cita$/i, espera: 30 },
-  { nombre: 'aviso', texto: /^(aceptar|entendido|acepto|continuar|iniciar solicitud)$/i, opcional: true, espera: 5 },
   { nombre: 'persona-natural', texto: /persona natural/i, espera: 25 },
   { nombre: 'videoatencion', texto: /video ?atenci[oó]n|no presencial/i, espera: 25 },
-  { nombre: 'devoluciones', texto: /devoluci[oó]n/i, espera: 25 },
+  { nombre: 'devoluciones', texto: /devoluci[oó]n/i, espera: 25, decide: true },
   { nombre: 'tramite', tipo: 'select', texto: /devoluci[oó]n/i, opcional: true, espera: 8 },
   { nombre: 'siguiente', texto: /^siguiente$/i, espera: 15 },
 ];
 
 // Frases que significan "no hay agenda".
-const SIN_CUPO = /no (hay|existen?|se encontr\w*|cuenta con|tiene|se dispone de)\b.{0,60}?(disponib|agenda|cita|cupo|horario|turno)|sin (disponibilidad|agenda|cupos?|citas|horarios)|agotad/i;
+const SIN_CUPO = /no (hay|existen?|se encontr\w*|cuenta con|tiene|se dispone de)\b.{0,60}?(disponib|agenda|cita|cupo|horario|turno|especialidad)|sin (disponibilidad|agenda|cupos?|citas|horarios)|agotad/i;
 const CAPTCHA = /no soy un robot|verifica que eres humano/i;
 const BLOQUEO = /access denied|acceso denegado|forbidden|request (was )?blocked|solicitud (fue )?bloqueada|just a moment|checking your browser|attention required|not available in your (country|region)/i;
 
@@ -98,6 +97,21 @@ function elegirOpcion({ src, flags }) {
     return { ya: false, texto: norm(opciones[0].text) };
   }
   return null;
+}
+
+function hayOpcionesReales() {
+  const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
+  const vis = (el) => {
+    if (!el || !el.getClientRects().length) return false;
+    const cs = getComputedStyle(el);
+    return cs.visibility !== 'hidden' && cs.display !== 'none';
+  };
+  for (const sel of document.querySelectorAll('select')) {
+    if (!(vis(sel) || vis(sel.parentElement))) continue;
+    const reales = Array.from(sel.options).filter((o) => !o.disabled && norm(o.text) && !/^(seleccione|--)/i.test(norm(o.text)));
+    if (reales.length) return true;
+  }
+  return false;
 }
 
 // Foto de la pantalla en texto: botones/controles visibles y listas con sus opciones.
@@ -179,6 +193,26 @@ async function elegir(page, re) {
     } catch (e) { /* frame cerrado */ }
   }
   return null;
+}
+
+async function hayOpciones(page) {
+  for (const frame of framesPropios(page)) {
+    try { if (await frame.evaluate(hayOpcionesReales)) return true; } catch (e) { /* ignorar */ }
+  }
+  return false;
+}
+
+// Después de Devoluciones: o sale el mensaje de "no hay", o se llena la lista de trámites.
+async function esperarDecision(page, previas, segundos) {
+  const fin = Date.now() + segundos * 1000;
+  let nuevo = '';
+  while (Date.now() < fin) {
+    nuevo = (await lineas(page)).filter((l) => !previas.has(l)).join(' | ');
+    if (SIN_CUPO.test(nuevo)) return { estado: 'sin-agenda', nuevo };
+    if (await hayOpciones(page)) return { estado: 'con-opciones', nuevo };
+    await page.waitForTimeout(700);
+  }
+  return { estado: 'incierto', nuevo };
 }
 
 async function lineas(page) {
@@ -269,55 +303,68 @@ async function main() {
     await page.waitForTimeout(2000);
     await captura(page, '00-inicio');
 
-    let antes = null;
+    let antesDecision = null; // texto de la pantalla justo antes de pulsar Devoluciones
+    let decision = null;      // 'sin-agenda' | 'con-opciones' | 'incierto'
     for (const [i, p] of PASOS.entries()) {
       if (await hayCaptcha(page)) throw new Fin('captcha', 'La página mostró un CAPTCHA antes de la disponibilidad.');
+      const despues = decision !== null; // pasos posteriores a Devoluciones: solo para mejorar la captura
       const registro = { paso: p.nombre };
       resumen.pasos.push(registro);
       if (p.tipo === 'select') {
         const r = await esperar(page, () => elegir(page, p.texto), p.espera);
         registro.encontrado = !!r;
-        if (!r) { if (p.opcional) continue; throw new Fin('paso-no-encontrado', `No encontré la opción "${p.nombre}".`); }
+        if (!r) { if (p.opcional || despues) continue; throw new Fin('paso-no-encontrado', `No encontré la opción "${p.nombre}".`); }
         registro.texto = r.texto;
         registro.como = r.ya ? 'ya-elegida' : 'lista';
         if (r.ya) continue;
-        antes = await lineas(page);
       } else {
         const m = await esperar(page, () => buscar(page, p.texto), p.espera);
         registro.encontrado = !!m;
         if (!m) {
-          if (p.opcional) continue;
           registro.pantalla = await pantalla(page);
+          if (p.opcional) continue;
+          if (despues) break;
           throw new Fin('paso-no-encontrado', `No encontré el paso "${p.nombre}".`);
         }
-        antes = await lineas(page);
+        if (p.decide) antesDecision = new Set(await lineas(page));
         registro.texto = m.r.texto;
         registro.como = await clic(m);
       }
       await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
+      if (p.decide) {
+        const d = await esperarDecision(page, antesDecision, 15);
+        decision = d.estado;
+        resumen.decision = decision;
+        resumen.textoNuevo = d.nuevo.slice(0, 2500);
+        registro.pantalla = await pantalla(page);
+        await captura(page, `${String(i + 1).padStart(2, '0')}-${p.nombre}`);
+        if (decision === 'sin-agenda') break; // no hay nada más que revisar
+        continue;
+      }
       await page.waitForTimeout(1500);
       registro.pantalla = await pantalla(page);
       await captura(page, `${String(i + 1).padStart(2, '0')}-${p.nombre}`);
     }
 
-    await page.waitForTimeout(ESPERA_RESULTADO_MS);
+    if (decision !== 'sin-agenda') await page.waitForTimeout(ESPERA_RESULTADO_MS);
     if (await hayCaptcha(page)) throw new Fin('captcha', 'La página mostró un CAPTCHA antes de la disponibilidad.');
 
-    // Solo se analiza el texto que apareció después del último clic.
-    const previas = new Set(antes || []);
-    const nuevo = (await lineas(page)).filter((l) => !previas.has(l)).join(' | ');
+    const ahora = await lineas(page);
+    const nuevo = ahora.filter((l) => !(antesDecision || new Set()).has(l)).join(' | ');
     resumen.textoNuevo = nuevo.slice(0, 2500);
     resumen.pantallaFinal = await pantalla(page);
     await captura(page, 'resultado');
     await captura(page, 'resultado-completo', true);
 
-    if (!nuevo) {
-      resumen.veredicto = 'sin-cambio';
-      resumen.detalle = 'La pantalla no cambió después del último paso.';
-    } else if (SIN_CUPO.test(nuevo)) {
+    const pasoDos = ahora.some((l) => /ciudad o municipio, sede, fecha y hora/i.test(l));
+    if (decision === 'sin-agenda' || SIN_CUPO.test(nuevo)) {
       resumen.veredicto = 'sin-agenda';
-    } else {
+    } else if (decision === 'con-opciones' || pasoDos) {
       resumen.veredicto = 'posible-cita';
+      resumen.detalle = pasoDos ? 'Llegó a la pantalla de ciudad, sede, fecha y hora.' : 'Apareció la lista de trámites de devolución.';
+    } else {
+      resumen.veredicto = 'sin-cambio';
+      resumen.detalle = 'Ni salió el mensaje de "no hay" ni aparecieron trámites; se revisa de nuevo en la próxima corrida.';
     }
   } catch (e) {
     const texto = (await lineas(page).catch(() => [])).join(' ');

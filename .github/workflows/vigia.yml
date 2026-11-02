@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AVISOS: 'off'     # se enciende cuando el robot quede verificado contra la página real
+  AVISOS: 'on'      # 'off' para pausar los correos sin detener la revisión
 
 jobs:
   revisar:
