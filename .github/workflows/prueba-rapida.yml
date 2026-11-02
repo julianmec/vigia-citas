@@ -1,0 +1,25 @@
+name: Aviso de prueba rápido
+
+# Crea solo el correo de prueba (sin correr el robot), para probar la alarma del iPhone en menos de un minuto.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['prueba-rapida.txt']
+
+permissions:
+  issues: write
+
+jobs:
+  avisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Crear aviso de prueba
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          HORA=$(TZ=America/Bogota date '+%H:%M:%S')
+          gh issue create --repo "${{ github.repository }}" \
+            --title "Puede haber citas DIAN - PRUEBA RAPIDA, no es real ($HORA)" \
+            --body "@${{ github.repository_owner }} Prueba rápida de la alarma del iPhone. No es una cita real."
