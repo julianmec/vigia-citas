@@ -1,0 +1,32 @@
+name: Probar botón de Safari
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['boton/**', '.github/workflows/probar-boton.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  probar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install --no-audit --no-fund
+      - name: Probar el marcador en la página real
+        continue-on-error: true
+        run: node boton/probar-boton.js
+      - name: Publicar resultado (rama "resultados-boton")
+        if: always()
+        run: |
+          [ -d salida-boton ] || exit 0
+          cd salida-boton
+          git init -q -b resultados-boton
+          git config user.name "vigia-bot"
+          git config user.email "vigia-bot@users.noreply.github.com"
+          git add -A
+          git commit -qm "Prueba del botón ${{ github.run_number }}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" resultados-boton
