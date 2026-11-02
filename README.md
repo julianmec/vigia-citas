@@ -1,7 +1,7 @@
 # Vigía de citas DIAN
 
 Cada ~5 minutos, GitHub Actions abre https://agendamiento.dian.gov.co en un navegador real,
-hace el recorrido **Agendamiento de citas → Persona natural → Videoatención → Devoluciones**
+hace el recorrido **Agendar cita → Persona natural → Videoatención → Devoluciones**
 y, si deja de salir el mensaje *"No se encontraron especialidades relacionadas según los
 filtros seleccionados"*, crea un issue en este repositorio con la captura. GitHub lo envía por correo.
 
