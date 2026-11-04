@@ -1,8 +1,10 @@
 // Botón "Cita DIAN" para Safari (marcador).
 // En agendamiento.dian.gov.co hace: Agendar cita → Persona Natural → Videoatención →
-// Devoluciones → trámite → Siguiente, y te deja en ciudad, sede, fecha y hora.
+// Devoluciones → trámite de TU ciudad → Siguiente, y te deja en la fecha.
+// Si solo hay agenda en otras ciudades, te lo dice y no avanza.
 // No escribe datos personales ni toca el CAPTCHA: eso lo haces tú.
 (async () => {
+  const CIUDAD = /bogot/i; // tu ciudad
   const D = document;
   if (!/agendamiento\.dian\.gov\.co$/.test(location.host) && !/^127\.0\.0\.1/.test(location.host)) {
     location.href = 'https://agendamiento.dian.gov.co/';
@@ -19,6 +21,7 @@
   const VERDE = 'rgb(21,128,61)', ROJO = 'rgb(185,28,28)', AMBAR = 'rgb(180,83,9)';
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
+  const ciudadDe = (t) => { const m = /^(.+?)\s*[“"«]/.exec(t || ''); return m ? m[1].trim() : ''; };
   const vis = (el) => {
     if (!el || !el.getClientRects().length) return false;
     const cs = getComputedStyle(el);
@@ -46,11 +49,11 @@
     el.click();
   };
   const noHay = () => /no se encontraron especialidades|no (hay|existen?) .{0,40}(disponib|agenda|cita)/i.test(norm(D.body.innerText));
-  const listaConOpciones = () => {
+  const listaTramites = () => {
     for (const sel of D.querySelectorAll('select')) {
       if (!(vis(sel) || vis(sel.parentElement))) continue;
-      const reales = Array.from(sel.options).filter((o) => !o.disabled && norm(o.text) && !/^(seleccione|--)/i.test(norm(o.text)));
-      if (reales.length) return { sel, reales };
+      const ops = Array.from(sel.options).filter((o) => !o.disabled && norm(o.text) && !/^(seleccione|--)/i.test(norm(o.text)));
+      if (ops.some((o) => /devoluci/i.test(o.text))) return { sel, ops };
     }
     return null;
   };
@@ -72,15 +75,21 @@
     let lista = null;
     for (let i = 0; i < 60 && !lista; i++) {
       if (noHay()) {
-        msg('Aún no hay agenda: la DIAN dice "No se encontraron especialidades". Intenta de nuevo en unos minutos.', ROJO);
+        msg('Aún no hay agenda en ninguna ciudad. Intenta de nuevo en unos minutos.', ROJO);
         return;
       }
-      lista = listaConOpciones();
+      lista = listaTramites();
       if (!lista) await sleep(250);
     }
     if (!lista) { msg('No vi la lista de trámites. Sigue a mano desde aquí.', AMBAR); return; }
 
-    const elegida = lista.reales.find((o) => /devoluci/i.test(o.text)) || lista.reales[0];
+    const ciudades = [...new Set(lista.ops.map((o) => ciudadDe(norm(o.text))).filter(Boolean))];
+    let elegida = lista.ops.find((o) => CIUDAD.test(ciudadDe(norm(o.text))));
+    if (!elegida && ciudades.length) {
+      msg('Solo hay agenda en: ' + ciudades.join(', ') + '. En tu ciudad todavía no.', ROJO);
+      return;
+    }
+    if (!elegida) elegida = lista.ops.find((o) => /devoluci/i.test(o.text)) || lista.ops[0];
     lista.sel.value = elegida.value;
     lista.sel.dispatchEvent(new Event('input', { bubbles: true }));
     lista.sel.dispatchEvent(new Event('change', { bubbles: true }));
@@ -90,11 +99,12 @@
     const sig = await esperar(/^siguiente$/i, 8);
     if (sig) clic(sig);
     const paso2 = await esperar(/^ciudad o municipio/i, 12);
+    const donde = ciudadDe(norm(elegida.text)) || 'la ciudad elegida';
     if (paso2) {
-      msg('Listo: elige ciudad, sede, fecha y hora. Luego tus datos, documentos y "No soy un robot".', VERDE);
+      msg('¡Hay agenda en ' + donde + '! Elige la fecha y la hora; luego tus datos, documentos y "No soy un robot".', VERDE);
       paso2.scrollIntoView({ block: 'start' });
     } else {
-      msg('Trámite elegido. Toca Siguiente y elige ciudad, sede, fecha y hora.', AMBAR);
+      msg('Trámite de ' + donde + ' elegido. Toca Siguiente y elige la fecha y la hora.', AMBAR);
     }
   } catch (e) {
     msg('No pude seguir en "' + e.message + '". Continúa a mano desde aquí.', AMBAR);

@@ -13,6 +13,17 @@ const HOST = new URL(URL_INICIO).host;
 const FORZAR_AVISO = /^(1|true)$/i.test(process.env.FORZAR_AVISO || '');
 const SALIDA = path.join(__dirname, 'salida');
 const ESPERA_RESULTADO_MS = 7000;
+// Ciudades que te sirven (expresión regular, sin importar tildes). La DIAN pone la ciudad al inicio
+// de cada trámite, p. ej.: 'Cali “Solicitud de devolución y/o compensación persona natural”.'
+const RE_CIUDADES = new RegExp(process.env.CIUDADES || 'Bogot', 'i');
+const sinTildes = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const esObjetivo = (c) => !!c && (RE_CIUDADES.test(c) || RE_CIUDADES.test(sinTildes(c)));
+const unicos = (a) => [...new Set(a.filter(Boolean))];
+const escapar = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const ciudadDe = (tramite) => {
+  const m = /^(.+?)\s*[“"«]/.exec(tramite || '');
+  return m ? m[1].trim() : '';
+};
 
 // Recorrido real de la página. "opcional": si no aparece, se salta. "espera": segundos máximos.
 // tipo "select": escoge la opción de una lista desplegable en vez de hacer clic.
@@ -21,8 +32,6 @@ const PASOS = [
   { nombre: 'persona-natural', texto: /persona natural/i, espera: 25 },
   { nombre: 'videoatencion', texto: /video ?atenci[oó]n|no presencial/i, espera: 25 },
   { nombre: 'devoluciones', texto: /devoluci[oó]n/i, espera: 25, decide: true },
-  { nombre: 'tramite', tipo: 'select', texto: /devoluci[oó]n/i, opcional: true, espera: 8 },
-  { nombre: 'siguiente', texto: /^siguiente$/i, espera: 15 },
 ];
 
 // Frases que significan "no hay agenda".
@@ -112,6 +121,15 @@ function hayOpcionesReales() {
     if (reales.length) return true;
   }
   return false;
+}
+
+function opcionesDeTramite() {
+  const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
+  for (const sel of document.querySelectorAll('select')) {
+    const ops = Array.from(sel.options).map((o) => norm(o.text)).filter((t) => t && !/^seleccione/i.test(t));
+    if (ops.some((t) => /devoluci/i.test(t))) return ops;
+  }
+  return [];
 }
 
 // Foto de la pantalla en texto: botones/controles visibles y listas con sus opciones.
@@ -317,47 +335,71 @@ async function main() {
     let decision = null;      // 'sin-agenda' | 'con-opciones' | 'incierto'
     for (const [i, p] of PASOS.entries()) {
       if (await hayCaptcha(page)) throw new Fin('captcha', 'La página mostró un CAPTCHA antes de la disponibilidad.');
-      const despues = decision !== null; // pasos posteriores a Devoluciones: solo para mejorar la captura
       const registro = { paso: p.nombre };
       resumen.pasos.push(registro);
-      if (p.tipo === 'select') {
-        const r = await esperar(page, () => elegir(page, p.texto), p.espera);
-        registro.encontrado = !!r;
-        if (!r) { if (p.opcional || despues) continue; throw new Fin('paso-no-encontrado', `No encontré la opción "${p.nombre}".`); }
-        registro.texto = r.texto;
-        registro.como = r.ya ? 'ya-elegida' : 'lista';
-        if (r.ya) continue;
-      } else {
-        const m = await esperar(page, () => buscar(page, p.texto), p.espera);
-        registro.encontrado = !!m;
-        if (!m) {
-          registro.pantalla = await pantalla(page);
-          if (p.opcional) continue;
-          if (despues) break;
-          throw new Fin('paso-no-encontrado', `No encontré el paso "${p.nombre}".`);
-        }
-        if (p.decide) antesDecision = new Set(await lineas(page));
-        registro.texto = m.r.texto;
-        registro.como = await clic(m);
+      const m = await esperar(page, () => buscar(page, p.texto), p.espera);
+      registro.encontrado = !!m;
+      if (!m) {
+        registro.pantalla = await pantalla(page);
+        if (p.opcional) continue;
+        throw new Fin('paso-no-encontrado', `No encontré el paso "${p.nombre}".`);
       }
+      if (p.decide) antesDecision = new Set(await lineas(page));
+      registro.texto = m.r.texto;
+      registro.como = await clic(m);
       await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
       if (p.decide) {
         const d = await esperarDecision(page, antesDecision, 15);
         decision = d.estado;
         resumen.decision = decision;
-        resumen.textoNuevo = d.nuevo.slice(0, 2500);
-        registro.pantalla = await pantalla(page);
-        await captura(page, `${String(i + 1).padStart(2, '0')}-${p.nombre}`);
-        if (decision === 'sin-agenda') break; // no hay nada más que revisar
-        continue;
+      } else {
+        await page.waitForTimeout(1500);
       }
-      await page.waitForTimeout(1500);
       registro.pantalla = await pantalla(page);
       await captura(page, `${String(i + 1).padStart(2, '0')}-${p.nombre}`);
     }
-
-    if (decision !== 'sin-agenda') await page.waitForTimeout(ESPERA_RESULTADO_MS);
     if (await hayCaptcha(page)) throw new Fin('captcha', 'La página mostró un CAPTCHA antes de la disponibilidad.');
+
+    resumen.ciudades = [];
+    resumen.ciudadesObjetivo = [];
+    let dias = null; // días que muestra el calendario de la ciudad objetivo (null = no se pudo leer)
+    if (decision === 'con-opciones') {
+      await page.waitForTimeout(1500);
+      const tramites = await page.mainFrame().evaluate(opcionesDeTramite).catch(() => []);
+      resumen.tramites = tramites;
+      let ciudades = unicos(tramites.map(ciudadDe));
+      const objetivo = tramites.find((t) => esObjetivo(ciudadDe(t)));
+      // Se entra a la pantalla de fecha solo si hay trámite de tu ciudad, o si no se pudo leer ninguna ciudad.
+      const elegido = objetivo || (ciudades.length ? null : tramites[0]);
+      if (elegido) {
+        const r = await elegir(page, new RegExp('^' + escapar(elegido) + '$'));
+        resumen.pasos.push({ paso: 'tramite', encontrado: !!r, texto: r ? r.texto : elegido, como: 'lista' });
+        await page.waitForTimeout(1200);
+        const sig = await esperar(page, () => buscar(page, /^siguiente$/i), 15);
+        resumen.pasos.push({ paso: 'siguiente', encontrado: !!sig });
+        if (sig) {
+          await clic(sig);
+          await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
+          await esperar(page, async () => (await lineas(page)).some((l) => /ciudad o municipio, sede, fecha y hora/i.test(l)), 12);
+          await page.waitForTimeout(3000);
+          const listas = await page.mainFrame().evaluate(todasLasListas).catch(() => []);
+          for (const l of listas) {
+            if (l.opciones.some((o) => /devoluci/i.test(o))) continue;
+            ciudades = unicos([...ciudades, ...l.opciones.filter((o) => o && o.length < 40)]);
+          }
+          const cal = (await pantalla(page)).find((c) => /^Calendario:/i.test(c));
+          if (cal) {
+            resumen.calendario = cal.replace(/^Calendario:\s*/i, '');
+            const tras = resumen.calendario.split(/\bSA\b/i).slice(1).join(' ');
+            dias = (tras.match(/\b\d{1,2}\b/g) || []);
+          }
+          await captura(page, '06-fecha');
+        }
+      }
+      resumen.ciudades = ciudades;
+      resumen.ciudadesObjetivo = ciudades.filter(esObjetivo);
+      if (dias) resumen.dias = dias;
+    }
 
     const ahora = await lineas(page);
     const nuevo = ahora.filter((l) => !(antesDecision || new Set()).has(l)).join(' | ');
@@ -367,12 +409,23 @@ async function main() {
     await captura(page, 'resultado');
     await captura(page, 'resultado-completo', true);
 
-    const pasoDos = ahora.some((l) => /ciudad o municipio, sede, fecha y hora/i.test(l));
-    if (decision === 'sin-agenda' || SIN_CUPO.test(nuevo)) {
+    if (decision === 'sin-agenda' || (decision !== 'con-opciones' && SIN_CUPO.test(nuevo))) {
       resumen.veredicto = 'sin-agenda';
-    } else if (decision === 'con-opciones' || pasoDos) {
-      resumen.veredicto = 'posible-cita';
-      resumen.detalle = pasoDos ? 'Llegó a la pantalla de ciudad, sede, fecha y hora.' : 'Apareció la lista de trámites de devolución.';
+    } else if (decision === 'con-opciones') {
+      const obj = resumen.ciudadesObjetivo;
+      if (obj.length && dias && dias.length === 0) {
+        resumen.veredicto = 'sin-agenda';
+        resumen.detalle = `${obj.join(', ')} aparece, pero el calendario no muestra días.`;
+      } else if (obj.length) {
+        resumen.veredicto = 'posible-cita';
+        resumen.detalle = `Hay agenda en ${obj.join(', ')}` + (dias && dias.length ? ` (días: ${dias.join(', ')}).` : '.');
+      } else if (resumen.ciudades.length) {
+        resumen.veredicto = 'otras-ciudades';
+        resumen.detalle = `Solo hay agenda en: ${resumen.ciudades.join(', ')}.`;
+      } else {
+        resumen.veredicto = 'posible-cita';
+        resumen.detalle = 'Apareció la lista de trámites de devolución, pero no pude leer la ciudad.';
+      }
     } else {
       resumen.veredicto = 'sin-cambio';
       resumen.detalle = 'Ni salió el mensaje de "no hay" ni aparecieron trámites; se revisa de nuevo en la próxima corrida.';

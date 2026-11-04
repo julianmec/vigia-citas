@@ -1,8 +1,11 @@
 name: Vigía de citas DIAN
 
+# Cada corrida revisa la DIAN una vez y deja programada la siguiente (cadena de ~5 min).
+# El horario (schedule) solo sirve de respaldo para reiniciar la cadena si algún día se corta:
+# GitHub ejecuta los horarios gratuitos con horas de retraso, por eso no se usa como reloj principal.
 on:
   schedule:
-    - cron: '*/5 * * * *'   # cada 5 min (GitHub puede retrasarlo unos minutos)
+    - cron: '7,22,37,52 * * * *'
   workflow_dispatch:
     inputs:
       forzar_aviso:
@@ -14,20 +17,25 @@ on:
     paths: ['vigia.js', 'package.json', '.github/workflows/vigia.yml', 'prueba-aviso.txt']
 
 permissions:
-  contents: write   # publicar las capturas en la rama "resultados"
+  contents: write   # publicar capturas e historial en la rama "resultados"
   issues: write     # crear el aviso (GitHub te lo manda por correo)
+  actions: write    # programar la siguiente revisión
 
 concurrency:
   group: vigia-citas
   cancel-in-progress: false
 
 env:
-  AVISOS: 'off'     # diagnóstico temporal
+  AVISOS: 'on'          # 'off' para pausar los correos (y la alarma del iPhone) sin detener la revisión
+  CIUDADES: 'Bogot'     # ciudades que te sirven (expresión regular); el aviso solo suena si aparece una
+  PAUSA_MIN: '3'        # minutos entre revisiones (además de ~2 min que tarda cada una)
 
 jobs:
   revisar:
     runs-on: ubuntu-latest
     timeout-minutes: 6
+    outputs:
+      fin: ${{ steps.fin.outputs.t }}
     steps:
       - uses: actions/checkout@v4
 
@@ -40,12 +48,21 @@ jobs:
         env:
           FORZAR_AVISO: ${{ inputs.forzar_aviso || (github.event_name == 'push' && contains(github.event.head_commit.message, '[aviso]')) }}
 
-      - name: Publicar capturas de la última corrida (rama "resultados")
+      - name: Publicar capturas e historial (rama "resultados")
         id: publicar
         if: always()
         run: |
           [ -f salida/resumen.json ] || exit 0
-          PREVIO=$( (git fetch -q origin resultados && git show FETCH_HEAD:resumen.json | jq -r '.veredicto // empty') 2>/dev/null || true)
+          PREVIO=""
+          if git fetch -q origin resultados 2>/dev/null; then
+            PREVIO=$(git show FETCH_HEAD:resumen.json 2>/dev/null | jq -r '.veredicto // empty' || true)
+            git show FETCH_HEAD:historial.csv > salida/historial.csv 2>/dev/null || true
+          fi
+          [ -s salida/historial.csv ] || echo "hora_bogota,evento,veredicto,ciudades" > salida/historial.csv
+          jq -r --arg ev "${{ github.event_name }}" \
+            '[(now - 18000 | strftime("%Y-%m-%d %H:%M")), $ev, .veredicto, ((.ciudades // []) | join(" / "))] | @csv' \
+            salida/resumen.json >> salida/historial.csv
+          { head -n 1 salida/historial.csv; tail -n +2 salida/historial.csv | tail -n 3000; } > h.tmp && mv h.tmp salida/historial.csv
           echo "previo=$PREVIO" >> "$GITHUB_OUTPUT"
           cd salida
           git init -q -b resultados
@@ -69,14 +86,16 @@ jobs:
           V=$(jq -r '.veredicto' salida/resumen.json)
           PRUEBA=$(jq -r '.prueba // false' salida/resumen.json)
           HORA=$(jq -r '.hora' salida/resumen.json)
+          LUGAR=$(jq -r '(.ciudadesObjetivo // []) | join(", ")' salida/resumen.json)
+          OTRAS=$(jq -r '(.ciudades // []) | join(", ")' salida/resumen.json)
           IMG="https://github.com/$REPO/blob/$SHA/resultado.png?raw=true"
           if [ "$PRUEBA" = "true" ]; then
             # El título contiene "Puede haber citas" para que también dispare la alarma del iPhone.
             TITULO="Puede haber citas DIAN - PRUEBA, no es real ($HORA)"
-            CUERPO="@$DUENO Esto es una **prueba**: así te va a llegar el aviso cuando aparezca agenda. Resultado real de esta revisión: **$V**."
+            CUERPO="@$DUENO Esto es una **prueba**: así te va a llegar el aviso cuando aparezca agenda. Resultado real de esta revisión: **$V**. Ciudades con agenda: ${OTRAS:-ninguna}."
           elif [ "$V" = "posible-cita" ] && [ "$AVISOS" = "on" ] && [ "$PREVIO" != "posible-cita" ]; then
-            TITULO="🚨 Puede haber citas DIAN de devoluciones ($HORA)"
-            CUERPO="@$DUENO **Entra ya** a https://agendamiento.dian.gov.co y en Safari toca **••• → Marcadores → Cita DIAN** (te deja en ciudad, sede, fecha y hora). Sin marcador: Agendar cita → Persona Natural → Videoatención → Devoluciones → trámite → Siguiente."
+            TITULO="🚨 Puede haber citas DIAN de devoluciones en ${LUGAR:-tu ciudad} ($HORA)"
+            CUERPO="@$DUENO **Entra ya** a https://agendamiento.dian.gov.co y en Safari toca **••• → Marcadores → Cita DIAN** (te deja en ciudad, sede, fecha y hora). Escoge **${LUGAR:-tu ciudad}**. Ciudades con agenda en esta revisión: ${OTRAS:-no se pudieron leer}."
           elif [ "$V" = "posible-cita" ] && [ "$AVISOS" = "on" ]; then
             # La agenda sigue abierta: hasta 3 recordatorios (uno por revisión) mientras el aviso siga abierto.
             N=$(gh issue list --repo "$REPO" --state open --json number,title \
@@ -84,7 +103,7 @@ jobs:
             [ -n "$N" ] || exit 0
             C=$(gh issue view "$N" --repo "$REPO" --json comments --jq '.comments | length')
             [ "$C" -lt 3 ] || exit 0
-            printf '@%s Sigue habiendo agenda (%s). Entra ya: Safari → ••• → Marcadores → Cita DIAN.\n\n![Lo que vio el robot](%s)\n' "$DUENO" "$HORA" "$IMG" > comentario.md
+            printf '@%s Sigue habiendo agenda en %s (%s). Entra ya: Safari → ••• → Marcadores → Cita DIAN.\n\n![Lo que vio el robot](%s)\n' "$DUENO" "${LUGAR:-tu ciudad}" "$HORA" "$IMG" > comentario.md
             gh issue comment "$N" --repo "$REPO" --body-file comentario.md
             exit 0
           else
@@ -92,3 +111,30 @@ jobs:
           fi
           printf '%s\n\n![Lo que vio el robot](%s)\n\nCierra este aviso cuando ya no lo necesites.\n' "$CUERPO" "$IMG" > cuerpo.md
           gh issue create --repo "$REPO" --title "$TITULO" --body-file cuerpo.md
+
+      - id: fin
+        if: always()
+        run: echo "t=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+  siguiente:
+    needs: revisar
+    if: always() && vars.CADENA != 'off'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Si el ambiente "espera" tiene "Wait timer", GitHub espera sin gastar minutos; si no, se espera aquí.
+    environment: espera
+    steps:
+      - name: Esperar y programar la siguiente revisión
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          FIN: ${{ needs.revisar.outputs.fin }}
+        run: |
+          FIN=${FIN:-$(date +%s)}
+          FALTA=$(( PAUSA_MIN * 60 - ( $(date +%s) - FIN ) ))
+          [ "$FALTA" -gt 0 ] && sleep "$FALTA"
+          for i in 1 2 3 4 5; do
+            gh workflow run vigia.yml --repo "$REPO" --ref main && exit 0
+            sleep 20
+          done
+          exit 1
