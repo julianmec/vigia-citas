@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AVISOS: 'on'      # 'off' para pausar los correos (y la alarma del iPhone) sin detener la revisión
+  AVISOS: 'off'     # diagnóstico temporal
 
 jobs:
   revisar:

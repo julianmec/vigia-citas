@@ -230,6 +230,16 @@ async function lineas(page) {
   return out;
 }
 
+function todasLasListas() {
+  const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
+  return Array.from(document.querySelectorAll('select')).map((sel) => ({
+    nombre: sel.getAttribute('nombre') || sel.id || sel.className || '',
+    visible: !!sel.getClientRects().length || !!(sel.parentElement && sel.parentElement.getClientRects().length),
+    elegida: sel.options[sel.selectedIndex] ? norm(sel.options[sel.selectedIndex].text) : '',
+    opciones: Array.from(sel.options).map((o) => norm(o.text)).slice(0, 60),
+  })).filter((l) => l.opciones.length);
+}
+
 async function pantalla(page) {
   const out = [];
   for (const frame of framesPropios(page)) {
@@ -353,6 +363,7 @@ async function main() {
     const nuevo = ahora.filter((l) => !(antesDecision || new Set()).has(l)).join(' | ');
     resumen.textoNuevo = nuevo.slice(0, 2500);
     resumen.pantallaFinal = await pantalla(page);
+    try { resumen.listas = await page.mainFrame().evaluate(todasLasListas); } catch (e) { /* ignorar */ }
     await captura(page, 'resultado');
     await captura(page, 'resultado-completo', true);
 
