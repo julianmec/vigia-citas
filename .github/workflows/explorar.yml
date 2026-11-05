@@ -39,6 +39,14 @@ jobs:
             -d '{"rutaRecurso":"Recursos/CitasDIAN/","nombreRecurso":""}' "$B/Player.aspx/ObtenerConfiguracion" -o configuracion.json || true
           rm -f cj.txt
           ls -la js plantillas configuracion.json
+      - uses: actions/checkout@v4
+        with:
+          path: repo
+      - name: Inspeccionar controles en la página real (solo lectura)
+        continue-on-error: true
+        run: |
+          cd repo && npm install --no-audit --no-fund >/dev/null
+          node explorar/inspeccionar.js && cp -r salida-inspeccion/* ../out/ || true
       - name: Publicar en la rama "explorar"
         run: |
           cd out
