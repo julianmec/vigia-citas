@@ -30,7 +30,7 @@ env:
   CIUDADES: 'Bogot'     # ciudades que te sirven (expresión regular)
   TRAMITE: 'vehiculo|electric|hibrid'   # tu trámite; el aviso solo suena si aparece en una de tus ciudades
   VUELTAS: '8'          # revisiones por corrida (los cupos duran pocos minutos)
-  ESPERA_SEG: '30'      # segundos entre revisiones dentro de una corrida (cada una tarda ~30 s)
+  ESPERA_SEG: '15'      # segundos entre revisiones dentro de una corrida (cada una tarda ~10-30 s)
   PAUSA_MIN: '0'        # minutos de pausa entre corridas
 
 jobs:
@@ -67,6 +67,44 @@ jobs:
           done
           true
 
+      - name: Avisar por correo (issue de GitHub)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DUENO: ${{ github.repository_owner }}
+          REPO: ${{ github.repository }}
+        run: |
+          [ -f salida/resumen.json ] || exit 0
+          PREVIO=$( (git fetch -q origin resultados && git show FETCH_HEAD:resumen.json | jq -r '.veredicto // empty') 2>/dev/null || true)
+          V=$(jq -r '.veredicto' salida/resumen.json)
+          PRUEBA=$(jq -r '.prueba // false' salida/resumen.json)
+          HORA=$(jq -r '.hora' salida/resumen.json)
+          LUGAR=$(jq -r '(.ciudadesObjetivo // []) | join(", ")' salida/resumen.json)
+          OTRAS=$(jq -r '(.ciudades // []) | join(", ")' salida/resumen.json)
+          CAPTURAS="https://github.com/$REPO/tree/resultados"
+          if [ "$PRUEBA" = "true" ]; then
+            # El título contiene "Puede haber citas" para que también dispare la alarma del iPhone.
+            TITULO="Puede haber citas DIAN - PRUEBA, no es real ($HORA)"
+            CUERPO="@$DUENO Esto es una **prueba**: así te va a llegar el aviso cuando aparezca agenda. Resultado real de esta revisión: **$V**. Ciudades con agenda: ${OTRAS:-ninguna}."
+          elif [ "$V" = "posible-cita" ] && [ "$AVISOS" = "on" ] && [ "$PREVIO" != "posible-cita" ]; then
+            TITULO="🚨 Puede haber citas DIAN de devoluciones en ${LUGAR:-tu ciudad} ($HORA)"
+            CUERPO="@$DUENO **Entra ya** a https://agendamiento.dian.gov.co y en Safari toca **••• → Marcadores → Cita DIAN**. En ~10 segundos te pide **No soy un robot**: tócalo y el botón agenda solo. Los cupos duran pocos minutos. Agenda en esta revisión: ${OTRAS:-no se pudo leer}."
+          elif [ "$V" = "posible-cita" ] && [ "$AVISOS" = "on" ]; then
+            # La agenda sigue abierta: hasta 3 recordatorios (uno por revisión) mientras el aviso siga abierto.
+            N=$(gh issue list --repo "$REPO" --state open --json number,title \
+              --jq '[.[] | select(.title | test("Puede haber citas")) | select(.title | test("PRUEBA") | not)][0].number // empty')
+            [ -n "$N" ] || exit 0
+            C=$(gh issue view "$N" --repo "$REPO" --json comments --jq '.comments | length')
+            [ "$C" -lt 3 ] || exit 0
+            printf '@%s Sigue habiendo agenda en %s (%s). Entra ya: Safari → ••• → Marcadores → Cita DIAN.\n' "$DUENO" "${LUGAR:-tu ciudad}" "$HORA" > comentario.md
+            gh issue comment "$N" --repo "$REPO" --body-file comentario.md
+            exit 0
+          else
+            exit 0
+          fi
+          printf '%s\n\nCapturas de la revisión: %s\n' "$CUERPO" "$CAPTURAS" > cuerpo.md
+          gh issue create --repo "$REPO" --title "$TITULO" --body-file cuerpo.md
+
       - name: Publicar capturas e historial (rama "resultados")
         id: publicar
         if: always()
@@ -89,45 +127,6 @@ jobs:
           git commit -q --allow-empty -m "Corrida ${{ github.run_number }} (${{ github.event_name }})"
           for i in 1 2 3; do git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" resultados && break; sleep 5; done
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Avisar por correo (issue de GitHub)
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PREVIO: ${{ steps.publicar.outputs.previo }}
-          SHA: ${{ steps.publicar.outputs.sha }}
-          DUENO: ${{ github.repository_owner }}
-          REPO: ${{ github.repository }}
-        run: |
-          [ -f salida/resumen.json ] || exit 0
-          V=$(jq -r '.veredicto' salida/resumen.json)
-          PRUEBA=$(jq -r '.prueba // false' salida/resumen.json)
-          HORA=$(jq -r '.hora' salida/resumen.json)
-          LUGAR=$(jq -r '(.ciudadesObjetivo // []) | join(", ")' salida/resumen.json)
-          OTRAS=$(jq -r '(.ciudades // []) | join(", ")' salida/resumen.json)
-          IMG="https://github.com/$REPO/blob/$SHA/resultado.png?raw=true"
-          if [ "$PRUEBA" = "true" ]; then
-            # El título contiene "Puede haber citas" para que también dispare la alarma del iPhone.
-            TITULO="Puede haber citas DIAN - PRUEBA, no es real ($HORA)"
-            CUERPO="@$DUENO Esto es una **prueba**: así te va a llegar el aviso cuando aparezca agenda. Resultado real de esta revisión: **$V**. Ciudades con agenda: ${OTRAS:-ninguna}."
-          elif [ "$V" = "posible-cita" ] && [ "$AVISOS" = "on" ] && [ "$PREVIO" != "posible-cita" ]; then
-            TITULO="🚨 Puede haber citas DIAN de devoluciones en ${LUGAR:-tu ciudad} ($HORA)"
-            CUERPO="@$DUENO **Entra ya** a https://agendamiento.dian.gov.co y en Safari toca **••• → Marcadores → Cita DIAN**. En ~10 segundos te pide **No soy un robot**: tócalo y el botón agenda solo. Los cupos duran pocos minutos. Agenda en esta revisión: ${OTRAS:-no se pudo leer}."
-          elif [ "$V" = "posible-cita" ] && [ "$AVISOS" = "on" ]; then
-            # La agenda sigue abierta: hasta 3 recordatorios (uno por revisión) mientras el aviso siga abierto.
-            N=$(gh issue list --repo "$REPO" --state open --json number,title \
-              --jq '[.[] | select(.title | test("Puede haber citas")) | select(.title | test("PRUEBA") | not)][0].number // empty')
-            [ -n "$N" ] || exit 0
-            C=$(gh issue view "$N" --repo "$REPO" --json comments --jq '.comments | length')
-            [ "$C" -lt 3 ] || exit 0
-            printf '@%s Sigue habiendo agenda en %s (%s). Entra ya: Safari → ••• → Marcadores → Cita DIAN.\n\n![Lo que vio el robot](%s)\n' "$DUENO" "${LUGAR:-tu ciudad}" "$HORA" "$IMG" > comentario.md
-            gh issue comment "$N" --repo "$REPO" --body-file comentario.md
-            exit 0
-          else
-            exit 0
-          fi
-          printf '%s\n\n![Lo que vio el robot](%s)\n\nCierra este aviso cuando ya no lo necesites.\n' "$CUERPO" "$IMG" > cuerpo.md
-          gh issue create --repo "$REPO" --title "$TITULO" --body-file cuerpo.md
 
       - id: fin
         if: always()

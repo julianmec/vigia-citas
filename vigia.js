@@ -377,7 +377,9 @@ async function main() {
       const objetivo = tramites.find((t) => esObjetivo(ciudadDe(t)) && esTramite(t));
       const legibles = tramites.some((t) => ciudadDe(t));
       // Se entra a la pantalla de fecha si está tu trámite en tu ciudad, o si no se pudo leer ninguna ciudad.
-      const elegido = objetivo || (legibles ? null : (tramites.find(esTramite) || tramites[0]));
+      // Si ya está tu trámite en tu ciudad, se avisa de inmediato (cada segundo cuenta); solo se entra
+      // a la pantalla de fecha cuando no se pudo leer ninguna ciudad.
+      const elegido = objetivo ? null : (legibles ? null : (tramites.find(esTramite) || tramites[0]));
       if (elegido) {
         const r = await elegir(page, new RegExp('^' + escapar(elegido) + '$'));
         resumen.pasos.push({ paso: 'tramite', encontrado: !!r, texto: r ? r.texto : elegido, como: 'lista' });
