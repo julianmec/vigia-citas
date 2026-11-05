@@ -22,13 +22,23 @@ const codigo = fs.readFileSync(path.join(__dirname, 'codigo.txt'), 'ascii');
     await page.goto('https://agendamiento.dian.gov.co/', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(2000);
-    // Configuración ficticia para que no abra la pantalla de configuración (el número nunca se escribe).
-    await page.evaluate(() => localStorage.setItem('vigiaCitaDIAN', JSON.stringify({ t: '2', n: '1' })));
-    // Instalación como lo hará la persona: marcador corto → pegar el código → Guardar.
+    // Fase A: primera vez, sin configuración: debe abrir "Configurar Cita DIAN".
     await page.evaluate((u) => { const a = document.createElement('a'); a.href = u; document.body.appendChild(a); a.click(); a.remove(); }, url);
     await page.waitForSelector('textarea', { timeout: 5000 });
     await page.fill('textarea', codigo);
     await page.click('button:has-text("Guardar")');
+    const cfg = await page.waitForSelector('#vigia-config', { timeout: 8000 }).then(() => true).catch(() => false);
+    res.configAbre = cfg;
+    res.configBanner = await page.evaluate(() => { const b = document.getElementById('vigia-banner'); return b ? b.textContent : ''; });
+    res.configTipos = await page.evaluate(() => Array.from(document.querySelectorAll('#vg-t option')).map((o) => o.value + '=' + o.textContent));
+    res.configTiposDocumento = await page.evaluate(() => { try { return JSON.stringify(window.configTiposDocumento).slice(0, 600); } catch (e) { return String(e); } });
+    res.indexedDB = await page.evaluate(() => new Promise((ok) => { const t = setTimeout(() => ok('sin respuesta en 4 s'), 4000); try { const r = indexedDB.open('prueba-vigia', 1); r.onsuccess = () => { clearTimeout(t); ok('ok'); }; r.onerror = () => { clearTimeout(t); ok('error ' + r.error); }; } catch (e) { clearTimeout(t); ok('excepcion ' + e.message); } }));
+    await page.screenshot({ path: path.join(SALIDA, 'config.png') }).catch(() => {});
+    await page.evaluate(() => { const c = document.getElementById('vigia-config'); if (c) c.remove(); });
+    // Configuración ficticia para que no abra la pantalla de configuración (el número nunca se escribe).
+    await page.evaluate(() => localStorage.setItem('vigiaCitaDIAN', JSON.stringify({ t: '2', n: '1' })));
+    // Instalación como lo hará la persona: marcador corto → pegar el código → Guardar.
+    await page.evaluate((u) => { const a = document.createElement('a'); a.href = u; document.body.appendChild(a); a.click(); a.remove(); }, url);
     res.instalado = await page.evaluate(() => (localStorage.getItem('vigiaCodigoDIAN') || '').length);
     let t = '';
     for (let i = 0; i < 120; i++) {
