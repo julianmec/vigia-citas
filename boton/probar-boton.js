@@ -10,6 +10,7 @@ const url = fs.readFileSync(path.join(__dirname, 'marcador.txt'), 'ascii');
 
 (async () => {
   fs.mkdirSync(SALIDA, { recursive: true });
+  process.on('unhandledRejection', (e) => { fs.writeFileSync(path.join(SALIDA, 'resumen.json'), JSON.stringify({ errorFatal: String(e && e.stack || e) }, null, 2)); process.exit(1); });
   const browser = await chromium.launch({ channel: 'chrome', headless: true });
   const context = await browser.newContext({ locale: 'es-CO', timezoneId: 'America/Bogota', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();

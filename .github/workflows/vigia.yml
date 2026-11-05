@@ -86,8 +86,8 @@ jobs:
           git config user.name "vigia-bot"
           git config user.email "vigia-bot@users.noreply.github.com"
           git add -A
-          git commit -qm "Corrida ${{ github.run_number }} (${{ github.event_name }})"
-          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" resultados
+          git commit -q --allow-empty -m "Corrida ${{ github.run_number }} (${{ github.event_name }})"
+          for i in 1 2 3; do git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" resultados && break; sleep 5; done
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Avisar por correo (issue de GitHub)

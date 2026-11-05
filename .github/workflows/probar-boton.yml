@@ -18,7 +18,7 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Probar el marcador en la página real
         continue-on-error: true
-        run: node boton/probar-boton.js
+        run: node boton/probar-boton.js 2>&1 | tee salida-boton-log.txt; mkdir -p salida-boton; cp salida-boton-log.txt salida-boton/log.txt
       - name: Publicar resultado (rama "resultados-boton")
         if: always()
         run: |
@@ -28,5 +28,5 @@ jobs:
           git config user.name "vigia-bot"
           git config user.email "vigia-bot@users.noreply.github.com"
           git add -A
-          git commit -qm "Prueba del botón ${{ github.run_number }}"
+          git commit -q --allow-empty -m "Prueba del botón ${{ github.run_number }}"
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" resultados-boton
