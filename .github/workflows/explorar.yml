@@ -33,7 +33,12 @@ jobs:
           for p in _PasoUno _PasoDos _PasoTres _PasoCuatro _ModalArchivosAsociados _ModalInfoCita _ModalError _ModalSinCitas _Inicio; do
             curl -sSL -A "$UA" "$B/Recursos/CitasDIAN/Plantillas/$p.html" -o "plantillas/$p.html" || true
           done
-          ls -la js plantillas
+          # Configuración de pantallas y eventos que la página pide al servidor al cargar.
+          curl -sSL -A "$UA" -c cj.txt "$B/" -o /dev/null
+          curl -sSL -A "$UA" -b cj.txt -c cj.txt -H 'Content-Type: application/json; charset=utf-8' -H 'X-Requested-With: XMLHttpRequest' \
+            -d '{"rutaRecurso":"Recursos/CitasDIAN/","nombreRecurso":""}' "$B/Player.aspx/ObtenerConfiguracion" -o configuracion.json || true
+          rm -f cj.txt
+          ls -la js plantillas configuracion.json
       - name: Publicar en la rama "explorar"
         run: |
           cd out
