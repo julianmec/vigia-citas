@@ -1,0 +1,133 @@
+<div rol="pantalla" class="w-auto h-auto">    
+    <div id="contenedor-pantalla" class="w-auto h-auto min-vh-100 d-flex flex-column justify-content-between">
+        <div class="contenido-Pantalla mb-5">  
+            <div rol="vista" nombreVista="__Header"></div>
+            <div class="espaciado-horizontal">
+                <div rol="vista" nombreVista="__NavPaginaDIAN"></div>
+            </div>
+            <div class="espaciado-horizontal">
+                <div rol="control" nombreControl="txtTitulo"></div>
+            </div>
+            <div class="espaciado-horizontal content-progress">
+                <div class="progress" >
+                    <div class="progress-bar" role="progressbar" style="width: 75%" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+            <div class="espaciado-horizontal">
+                <div class="contenido-paso">
+                    <div>
+                        <div rol="control" nombreControl="txtPasoTres"></div>
+                    </div>                    
+                    <div class="contenido-form">
+                        <div class="d-flex flex-column">
+                            <div rol="control" nombreControl="Captcha"></div>
+                        </div>
+                        <div>
+                            <div rol="control" nombreControl="txtTipoDocumento"></div>
+                        </div>
+                        <div>
+                            <div rol="control" nombreControl="TipoDocumento"></div>
+                        </div>
+                    </div> 
+                    <div class="contenido-form" id="divPasoTresNumeroDocumento" style="display: none;">
+                        <div>
+                            <div rol="control" nombreControl="txtNumeroDocumento"></div>
+                        </div>
+                        <div>
+                            <div rol="control" nombreControl="tbxNumeroDoc" class="position-relative"></div>
+                        </div>
+                    </div> 
+                    <div>
+                        <div contenido="infoPreviaDocumento" rol="control" nombreControl="txtInfoPreviaDocumento"></div>
+                        <div contenido="infoAsociada" rol="control" nombreControl="txtInfoAsociada"></div>
+                    </div>
+                    <div contenido="usuarioEncontrado" class="contenido-info-usuario tamanio-maximo-contenido">                       
+                        <div class="d-flex gap-2">
+                            <div rol="control" nombreControl="txtTipoDocInfo"></div>
+                            <div rol="control" nombreControl="txtInfoTipoDoc"></div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <div rol="control" nombreControl="txtDocInfo"></div>
+                            <div rol="control" nombreControl="txtInfoDoc"></div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <div rol="control" nombreControl="txtNombresInfo"></div>
+                            <div rol="control" nombreControl="txtInfoNombre"></div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <div rol="control" nombreControl="txtTelefonoInfo"></div>
+                            <div rol="control" nombreControl="txtInfoTelefono"></div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <div rol="control" nombreControl="txtCorreoInfo"></div>
+                            <div rol="control" nombreControl="txtInfoCorreo"></div>
+                        </div>
+                    </div>
+                    <div contenido="usuarioEncontrado" class="contenido-pregdatos">
+                        <div>
+                            <div rol="control" nombreControl="txtPregDatosCorrectos"></div>
+                        </div>
+                        <div>
+                            <div rol="control" nombreControl="DatosCorretos"></div>
+                        </div>
+                    </div>
+                    <div contenido="nombre" class="contenido-form">
+                        <div>
+                            <div rol="control" nombreControl="txtNombreCompleto"></div>
+                        </div>
+                        <div>
+                            <div rol="control" nombreControl="tbxNombreCompleto" class="position-relative"></div>
+                        </div>
+                    </div> 
+                    <div contenido="contacto" class="contenido-form">
+                        <div>
+                            <div rol="control" nombreControl="txtTelefonoCelular"></div>
+                        </div>
+                        <div>
+                            <div rol="control" nombreControl="tbxTelefono" class="position-relative"></div>
+                        </div>
+                    </div> 
+                    <div contenido="contacto" class="contenido-form">
+                        <div>
+                            <div rol="control" nombreControl="txtCorreoElectronico"></div>
+                        </div>
+                        <div>
+                            <div rol="control" nombreControl="tbxCorreo" class="position-relative"></div>
+                        </div>
+                    </div> 
+                    <div contenido="datosConfirmar">
+                        <div rol="control" nombreControl="txtDatosConfirmar"></div>
+                    </div>
+                    <div class="w-100 zona-archivos">       
+                        <div contenido="archivos" class="contenedor-archivos">
+                            <div class="separador-contenido w-100 d-block"></div>
+                            <div class="contenido-archivos">
+                                <div class="texto-archivos">
+                                    <div rol="control" nombreControl="txtTituloArchivos"></div>
+                                    <div class="info-adicional-archivos">
+                                        <div rol="control" nombreControl="txtDescripcion"></div>                                       
+                                    </div>
+                                </div>
+                                <div rol="control" nombreControl="btnCargarDocumentos"></div>
+                                <div rol="control" nombreControl="txtDocumentosCargados"></div>
+                            </div>
+                        </div>  
+                        <div class="separador-contenido w-100 d-block"></div>    
+                    </div>                    
+                    <div class="d-flex flex-column">
+                        <div rol="control" nombreControl="TerminosCondiciones"></div>
+                        <div control="txtError" rol="control" nombreControl="txtErrorFormulario" class="mt-3"></div>
+                    </div>
+                    <div class="contenido-botones">
+                        <div rol="control" nombreControl="btnAnterior"></div>
+                        <div contenido="botonesPasoTres" class="d-flex">
+                            <div rol="control" nombreControl="btnSiguiente"></div>
+                            <div rol="control" nombreControl="btnSiguienteBlock"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>            
+        </div>
+        <div rol="vista" nombreVista="__Footer"></div>
+    </div>
+</div>

@@ -1,0 +1,39 @@
+<div rol="pantalla" class="vw-100 vh-100 min-vh-100 position-absolute pantalla-modal">
+    <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="contenedor-modal modal-archivos tamanio-modal-archivos">
+            <div class="contenido-modal w-100">
+                <div class="contenido-modal-archivos">
+                    <div rol="control" nombreControl="btnCerrarModal" class="d-flex justify-content-end"></div>
+                    <div rol="control" nombreControl="txtTituloModal"></div>
+                    <div class="infoadicional-archivos"> 
+                        <span>Puede cargarlos todos de una vez o los que tenga a la mano</span>                        
+                        <span></span>
+                    </div>
+                    <div class="drop-section" id="drop-section">
+                        <div class="contenedor-cargar-archivo">
+                            <div rol="control" nombreControl="img_UploadFile"></div>
+                            <div class="contenido-restricciones">
+                                <div rol="control" nombreControl="txtCargarArchivos"></div>
+                                <div rol="control" nombreControl="txtRestricciones"></div>
+                            </div>
+                        </div>
+                        <div rol="control" nombreControl="txtOr"></div>
+                        <div>
+                            <div class="d-flex justify-content-center">
+                                <div rol="control" nombreControl="btnBuscarArchivos"></div>
+                                <!-- <div id="fileSelector" class="file-selector">Buscar Archivos</div> -->
+                                <div rol="control" nombreControl="fileAdjuntarArchivos"></div>   
+                            </div>  
+                        </div>                    
+                    </div>
+                    <div class="list-section" id="list-section">
+                        <div rol="control" nombreControl="txtTituloCargados"></div>
+                        <!-- <div class="list" id="document-images" style="height: 100px;"></div>-->
+                        <div class="list" id="document-images"></div>
+                    </div>
+                </div>
+                <div rol="control" nombreControl="btnGuardarArchivos" class="d-flex justify-content-end"></div>
+            </div>
+        </div>
+    </div>
+</div>

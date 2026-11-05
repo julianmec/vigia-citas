@@ -1,0 +1,74 @@
+<div rol="pantalla" class="w-auto h-auto">    
+    <div id="contenedor-pantalla" class="w-auto h-auto min-vh-100 d-flex flex-column justify-content-between">
+        <div class="contenido-Pantalla mb-5">  
+            <div rol="vista" nombreVista="__Header"></div>
+            <div class="espaciado-horizontal">
+                <div rol="vista" nombreVista="__NavPaginaDIAN"></div>
+            </div>
+            <div class="espaciado-horizontal">
+                <div rol="control" nombreControl="txtTitulo"></div>
+            </div>
+            <div class="espaciado-horizontal content-progress">
+                <div class="progress" >
+                    <div class="progress-bar" role="progressbar" style="width: 50%" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+            <div class="espaciado-horizontal">
+                <div class="contenido-paso">
+                    <div>
+                        <div rol="control" nombreControl="txtPasoDos"></div>
+                    </div>                   
+                    <div contenido="InfoAdicional" class="w-100">
+                        <div rol="control" nombreControl="txtDisponibilidad" class="w-100"></div>
+                    </div>    
+                    <div contenido="InfoAdicional" >
+                        <div rol="control" nombreControl="txtInformacion"></div>
+                    </div>    
+                    <div contenido="Ciudad"  class="contenido-form">
+                        <div>
+                            <div rol="control" nombreControl="txtCiudad"></div>
+                        </div>
+                        <div>
+                            <div rol="control" nombreControl="Ciudades"></div>
+                        </div>
+                    </div>   
+                    <div contenido="Sede" class="contenido-form">
+                        <div>
+                            <div rol="control" nombreControl="txtSede"></div>
+                        </div>
+                        <div>
+                            <div rol="control" nombreControl="Sedes"></div>
+                        </div>
+                    </div>    
+                    <div contenido="Fecha" class="contenido-fecha">
+                        <div class="contenido-form">
+                            <div>
+                                <div rol="control" nombreControl="txtFecha"></div>
+                            </div>
+                            <div>
+                                <div rol="control" nombreControl="btnFecha"></div>
+                            </div>
+                        </div> 
+                        <div rol="control" nombreControl="Calendario" class="contenido-calendario"></div>
+                    </div>  
+                    <div contenido="Hora" class="contenido-form">
+                        <div>
+                            <div rol="control" nombreControl="txtHora"></div>
+                        </div>
+                        <div>
+                            <div rol="control" nombreControl="Horas"></div>
+                        </div>
+                    </div>      
+                    <div class="contenido-botones">
+                        <div rol="control" nombreControl="btnAnterior"></div>
+                        <div contenido="botonesPasoDos" class="d-flex">
+                            <div rol="control" nombreControl="btnSiguiente"></div>
+                            <div rol="control" nombreControl="btnSiguienteBlock"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>            
+        </div>
+        <div rol="vista" nombreVista="__Footer"></div>
+    </div>
+</div>

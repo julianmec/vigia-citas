@@ -1,0 +1,1410 @@
+@font-face { font-family: 'robotoMedium'; src: url('fuentes/roboto_font/Roboto-Medium.ttf') format('truetype'); }
+@font-face { font-family: 'robotoRegular'; src: url('fuentes/roboto_font/Roboto-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'Work Sans'; src: url('fuentes/Work_Sans/WorkSans-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'Ubuntu'; src: url('fuentes/Ubuntu/Ubuntu-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'UbuntuBold'; src: url('fuentes/Ubuntu/Ubuntu-Bold.ttf') format('truetype'); }
+@font-face { font-family: 'WorkSansSemibold'; src: url('fuentes/Work_Sans/WorkSans-SemiBold.ttf') format('truetype'); }
+@font-face { font-family: 'WorkSansBold'; src: url('fuentes/Work_Sans/WorkSans-Bold.ttf') format('truetype'); }
+@font-face { font-family: 'WorkSansExtraBold'; src: url('fuentes/Work_Sans/WorkSans-ExtraBold.ttf') format('truetype'); }
+
+:root{
+    --dn-bg-white: #ffffff;
+    --dn-bg-gray: #dce2e8;
+    --dn-bg-gray01: #f6f7f9;
+    --dn-bg-gray02: #F0F2F6;
+    --dn-gb-gray03: #BEC8D2;
+    --dn-bg-gray04: #4B5661;
+    --dn-bg-gray05: #FAFAFA;
+    --dn-bg-blue01: #39B7D9;
+    --dn-bg-blue02: #3366cc;
+    --dn-bg-blue03: #384149;
+    --dn-bg-green01: #41d78c;
+    --dn-bg-red: #ff0000;
+    --dn-mg-formato: 'El formato no es válido';
+}
+
+/*Estilo para ocultar el contenido en pantalla*/
+.contenidoOculto{
+    display: none !important;
+}
+
+/*Estilo para los campos con el contenido vacio*/
+.campo-invalido, .campo-formato-invalido{
+    border: 1px solid var(--dn-bg-red) !important;
+}
+
+.campo-formato-invalido{
+    margin-bottom: 10px !important;
+}
+
+/*Estilo para los campos que no cumplen con el formato*/
+.campo-formato-invalido::after{
+    position: absolute;
+    content: var(--dn-mg-formato);
+    color: var(--dn-bg-red);
+    font-size: 14px;
+    font-weight: 400;
+    left: 10px;
+    bottom: -20px;
+}
+
+/*Estilo para el campo número documento cuando no cumple longitud*/
+.campo-longitud-invalida{
+    color: var(--dn-bg-red);
+}
+
+.cargue-archivo{
+    color: var(--dn-bg-red);
+	font-size: 14px !important;
+}
+
+/*Header*/
+.header{ 
+    border-bottom: 1px solid var(--dn-bg-blue01); 
+}
+
+.header .logoHeader{
+    padding: 0 48px;
+}
+
+.header .heaer-content-logo{
+    background-color: var(--dn-bg-blue02);
+    padding: 10px 0;
+    height: 48px;
+}
+
+.header .header-content-LogoDos{
+    padding: 12px 0;
+}
+
+.header .contenido-header{
+    display: flex;
+    align-items: center;
+    height: 46px;
+}
+/*Footer*/
+.footer{
+    padding: 40px 0;
+}
+
+.footer .footer-direccion{
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.footer > div{
+    gap: 30px;
+}
+
+.footer-direccion .footer-info-direccion, .footer .footer-contacto{
+    width: 381px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.footer .social-icon{
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    margin: 0 15px;
+}
+
+.footer-logos{
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 30px;
+}
+
+.footer .separador-horizontal{
+    height: 242px;
+    width: 1px;
+    background-color: var(--dn-bg-white);
+    border: none;
+}
+
+.footer .separador-vertical{
+    width: 100%;
+    height: 1px;
+    background-color: var(--dn-bg-white);
+    border: none;
+}
+
+.footer .contener-info-footer{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.footer .contener-info-footer a {
+    text-decoration: revert-layer;
+    text-decoration-color: white;
+}
+
+.txtTituloAgendamiento{
+    font-weight: 700 !important;
+    letter-spacing: -0.45px !important;
+}
+
+.contenido-inicio{
+    display: flex;
+    flex-direction: column;
+    transition: padding .4s ease-in;
+}
+
+.contenido-pantalla{
+    min-height: 77vh;
+}
+
+.contenedor-botones-inicio{
+    gap: 16px;
+}
+
+.content-btnInicio{
+    width: 193px;
+    height: auto;
+}
+
+.content-btnInicio br{
+    display: none;
+}
+
+.content-btnInicio span br{
+    display: block;
+}
+
+.content-btnInicio span:first-child{
+    font-weight: 700 !important;
+}
+
+.content-btnInicio span:last-child{
+    font-weight: 400 !important;
+}
+
+#contenedor-pantalla{ overflow-y: auto; overflow-x: hidden; max-height: 100vh; scrollbar-color: var(--dn-bg-blue02) var(--dn-bg-gray); scrollbar-width: thin; }
+
+.contenido-Pantalla{
+    display: flex;
+    justify-content: flex-start;
+    flex-direction: column;
+}
+
+.tamanio-maximo-contenido{
+    transition: width .2s ease-in;
+}
+
+.espaciado-horizontal{
+    padding: 0 112px;
+}
+
+.content-progress{
+    display: flex;
+    justify-content: center;
+}
+
+.progress, .progress-bar{ 
+    border-radius: 25px;
+    transition: width .5s ease-in;
+}
+
+.progress-bar{ background-color: var(--dn-bg-green01); }
+
+.espaciado-horizontal .contenido-paso{
+    background-color: var(--dn-bg-gray01);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 30px;
+    width: fit-content;
+    margin: 0 auto;
+    transition: padding .5s ease-in;
+}
+
+.txtTituloPaso{
+    font-weight: 600 !important;
+    letter-spacing: -0.45px !important;
+}
+
+.txtInformacionPaso{
+    font-weight: 500 !important;
+    letter-spacing: -0.45px !important;
+}
+
+.btnTipoPersona, .btnTipoAtencion{
+    flex: none !important;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.separador-contenido{
+    pad: 12px 0;
+    height: 1px; 
+    background-color: var(--dn-bg-gray);
+}
+
+.contenido-form{
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.btnCategoria{
+    gap: 13px !important;
+	align-items: center !important;
+}
+
+.btnCat{
+	display: flex; 
+	width: 100%; 
+	flex-wrap: wrap; 
+	max-width: 500px !important
+}
+
+.btnCatSpan{
+	text-align:center;
+}
+
+.customSelect{
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjEiIHZpZXdCb3g9IjAgMCAyMCAyMSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0zLjQxMDA1IDYuOTgyMzJDMy45NTY3OCA2LjQzNTU4IDQuODQzMjIgNi40MzU1OCA1LjM4OTk1IDYuOTgyMzJMMTAgMTEuNTkyNEwxNC42MTAxIDYuOTgyMzJDMTUuMTU2OCA2LjQzNTU4IDE2LjA0MzIgNi40MzU1OCAxNi41ODk5IDYuOTgyMzJDMTcuMTM2NyA3LjUyOTA1IDE3LjEzNjcgOC40MTU0OCAxNi41ODk5IDguOTYyMjJMMTAuOTg5OSAxNC41NjIyQzEwLjQ0MzIgMTUuMTA4OSA5LjU1Njc4IDE1LjEwODkgOS4wMTAwNSAxNC41NjIyTDMuNDEwMDUgOC45NjIyMkMyLjg2MzMyIDguNDE1NDggMi44NjMzMiA3LjUyOTA1IDMuNDEwMDUgNi45ODIzMloiIGZpbGw9IiM0MUQ3OEMiLz4KPC9zdmc+');
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 20px;
+}
+
+.contentImgCategoria{
+    width: 40px;
+    height: 40px;
+    margin: 0 auto;
+}
+
+.filterSVG{
+    filter: brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(0%) hue-rotate(8deg) brightness(94%) contrast(104%) !important;
+    transition: filter 0.5s ease-in-out !important;
+}
+
+.btnSiguientePagina, 
+.btnSiguientePaginaBlock,
+.btnAnteriorPagina,
+.btnModalIcon {
+    gap: 8px
+}
+
+.btnSiguientePagina span, 
+.btnSiguientePaginaBlock span,
+.btnAnteriorPagina span, 
+.btnDatosGestionCita span,
+.btnEditarPaso span,
+.btnPasoCuatro span,
+.btnModalIcon span,
+.btnModal span,
+.btnGuardarArchivos span,
+.file-selector span{
+    font-weight: 700 !important;
+}
+
+.contentImgBtnSiguiente,
+.contentImgBtnAnterior,
+.contentImgDescarga,
+.content-imgbotonmodal{
+    display: flex;
+}
+
+.btnSiguientePagina .contentImgBtnSiguiente img, 
+.btnSiguientePaginaBlock .contentImgBtnSiguiente img, 
+.btnAnteriorPagina .contentImgBtnAnterior img,
+.btnCargarDocumento .contentImgDescarga img,
+.btnModalIcon .content-imgbotonmodal img
+{
+    width: 20px;
+    height: 20px;
+}
+
+.contenido-botones{
+    display: flex;
+    gap: 30px;
+}
+
+.customSelect:focus{
+    border-color: var(--dn-bg-green01) !important;
+}
+
+.contenido-fecha{
+    width: 100%;
+    display: flex;
+    flex-direction: column;   
+}
+
+.btnFecha:active{
+    transform: none !important;
+}
+
+.btnFecha{
+    min-height: 40px;
+}
+
+.contentImgFecha{
+    display: flex;
+    align-items: center;
+    cursor: pointer !important;
+}
+
+.contentImgFecha img{
+    width: 20px;
+    height: 20px;
+}
+
+/*Estilo Calendario*/
+.calendario .k-header{
+    display: flex;
+    flex-direction: row;
+    font-family: 'Work Sans';
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 16px;
+    color: var(--dn-bg-blue03);
+    margin-bottom: 0.5rem;  
+    background-color: var(--dn-bg-white); 
+    border-bottom: 1px solid var(--dn-bg-gray02);
+}
+
+.calendario .k-header .k-state-hover{
+    background-color: var(--dn-bg-white) !important;
+    color: var(--dn-bg-blue03);
+}
+
+.calendario .k-calendar th{
+    background-color: var(--dn-bg-white);
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--dn-bg-blue03);
+    border: none !important
+}
+
+.calendario .k-header > a{
+    position: static !important;
+    display: flex !important;
+    align-items: center;    
+}
+
+.calendario .k-header > a:nth-child(2){
+    cursor: default !important;
+}
+
+.calendario .k-header > a:first-child{
+    order: 2;
+    justify-content: center;
+}
+
+.calendario .k-header > a:last-child{
+    order: 3;
+    justify-content: center;
+}
+
+.calendario .k-calendar-view{
+    font-family: 'Ubuntu';
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 400;
+}
+
+.calendario .k-calendar-view .k-today > a{
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.calendario .k-calendar-view .k-state-selected > a{
+    background-image: none !important;
+    border-radius: 50% !important;
+    border: none !important;
+    background-color: var(--dn-bg-green01) !important;
+}
+
+.calendario .k-calendar-view .k-state-focused > a{
+    box-shadow: none !important;
+}
+
+.calendario .k-footer{
+    display: none !important;
+}
+
+.calendario{
+    font-family: Ubuntu;
+    height: 0 !important;
+    overflow: hidden;
+    padding: 0px !important;
+    border: 1px solid var(--dn-bg-gray02);
+    border-radius: 8px;
+    background-color: var(--dn-bg-white) !important;
+    transition: height .5s ease-out, margin 1s ease;
+    interpolate-size: allow-keywords;
+}
+
+.calendario.calendario-open{
+    height: auto !important;
+    padding: 20px !important;
+    margin-top: 8px !important;
+}
+
+.cajaPlaceholder::placeholder{
+    color: var(--dn-gb-gray03) !important;
+    font-weight: 400 !important;
+}
+
+.cajaPlaceholder:hover::placeholder{
+	color: var(--dn-bg-gray04) !important;
+}
+
+.contenido-pregdatos{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/*Radio button*/
+.customRadioButton{
+    display: flex;
+    gap: 33px;
+}
+
+.customRadioButton label{
+    display: flex;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.customRadioButton input[type="radio"] {
+    /* Add if not using autoprefixer */
+    -webkit-appearance: none;
+    /* Remove most all native input styles */
+    appearance: none;
+    /* For iOS < 15 */
+    background-color: var(--form-background);
+    /* Not removed via appearance */
+    margin: 0;
+
+    font: inherit;
+    color: currentColor;
+    width: 1em;
+    height: 1em;
+    border: 0.15em solid var(--dn-bg-green01);
+    border-radius: 50%;
+    
+    align-self: center;
+    display: grid;
+    place-content: center;
+    cursor: pointer;
+}
+
+.customRadioButton input[type="radio"]::before {
+    content: "";
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    transform: scale(0);
+    transition: 120ms transform ease-in-out;
+    box-shadow: inset 1em 1em var(--dn-bg-green01);
+}
+
+.customRadioButton input[type="radio"]:checked::before, .customRadioButton input[type="radio"]:hover::before {
+    transform: scale(.95);
+}
+
+/*Terminos y condiciones*/
+.checkBoxTerminos > label{
+    display: flex;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.checkBoxTerminos span{
+    font-weight: 400 !important;
+}
+
+.checkBoxTerminos span a {
+    font-weight: 700 !important;
+    color: inherit;
+}
+
+.checkBoxTerminos input[type="checkBox"]{
+    /* Add if not using autoprefixer */
+    -webkit-appearance: none;
+    /* Remove most all native input styles */
+    appearance: none;
+    /* For iOS < 15 */
+    background-color: var(--form-background);
+    /* Not removed via appearance */
+    margin: 0;
+  
+    font: inherit;
+    color: var(--dn-bg-white);
+    width: 1.15em;
+    height: 1.15em;
+    border: 0.15em solid var(--dn-bg-green01);
+    border-radius: 0.3em;
+  
+    align-self: center;
+    display: grid;
+    place-content: center;
+    cursor: pointer;
+}
+
+.checkBoxTerminos input[type="checkbox"]::before {
+    content: "";
+    width: 0.65em;
+    height: 0.65em;
+  
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    transform: scale(0);
+    transform-origin: bottom left;
+    transition: 120ms transform ease-in-out;
+  
+    box-shadow: inset 1em 1em var(--dn-bg-green01);
+  }
+  
+.checkBoxTerminos input[type="checkbox"]:checked::before {
+    transform: scale(1);
+}
+
+/*Archivos*/
+.contenedor-archivos, .zona-archivos{
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.contenedor-archivos .contenido-archivos{
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 20px;
+    background-color: var(--dn-bg-white);
+    border: 1px solid var(--dn-gb-gray03);
+    border-radius: 8px;
+}
+
+.contenedor-archivos .texto-archivos{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;    
+}
+
+.btnCargarDocumento span{
+    font-weight: 700 !important;
+}
+
+.info-adicional-archivos, .infoadicional-archivos{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-family: 'Ubuntu';
+    color: #262626;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 400;
+}
+
+.infoadicional-archivos{
+    font-weight: 500;
+}
+
+.info-adicional-archivos ul, .infoadicional-archivos ul{
+    margin-bottom: 0;
+}
+
+.contenido-info-usuario{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+}
+
+.contenedor-info-paso{
+    width: 100%;
+    display: flex;
+    gap: 16px;
+}
+
+.contenido-info-paso{
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.contenedor-info-paso .info-paso{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+}
+
+/*Modales*/
+div[rol="pantalla"][nombre="ModalArchivosAsociados"]{
+    transition: none;
+}
+
+.pantalla-modal{
+    z-index: 9000;
+}
+
+.contenedor-modal{
+    border-radius: 4px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    background-color: var(--dn-bg-white);
+    transition: all .5s ease-in;
+}
+
+.pantalla-modal-oscuro{
+	background-color: rgb(0 0 0 / 85%) !important;
+}
+
+/*.tamanio-modal-archivos{
+    transform: translateY(-50%);
+}*/
+
+.contenedor-modal .contenido-modal{
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.contenido-modal .info-modal{
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.btnCerrarModal{
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+.texto-modal{
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.tamanio-modal{
+    margin: 0 auto;
+}
+
+.tamanio-modal-archivos{
+    position: relative;
+    margin: 0 auto;
+}
+
+.btnModalIcon, .btnModal{
+    width: 261px !important;
+}
+
+.contenido-modal-archivos{
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.drop-section{
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    background-color: var(--dn-bg-gray05);
+    border: 1.5px dashed var(--dn-gb-gray03);
+}
+
+/*¡¡¡¡¡¡¡¡¡¡¡¡¡***********************Estilos cargar achivos**************!!!!!!!!!!!*/
+.tamanio-contenido--modalarchivos{
+    max-width: 924px;
+    width: 924px;
+}
+
+.modal-archivos{  
+    overflow: auto;
+    max-height: 705px;
+}
+
+.contenedor-cargar-archivo{
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.contenido-restricciones{
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.list-section{
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+}
+
+li.complete.document-file{
+    display: flex;
+    justify-content: space-between;
+    margin: 0 .5rem;
+    max-height: 48px;
+    padding: 14px 16px;
+    font-family: 'Ubuntu';
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    border-bottom: 1.5px solid var(--dn-bg-gray);
+}
+
+.file-name > span{
+    display: none !important;
+}
+
+.file-name .name{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#document-images{
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+/*Grilla citas*/
+.detalleCitas thead, .detalleCitas tbody tr{
+    margin-bottom: 3px;
+}
+
+.detalleCitas tbody tr{
+    border-bottom: 1.5px solid var(--dn-bg-gray);
+}
+
+.columnaAcciones{
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.columnaAcciones > div{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.contenido-gestion-cita{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: fit-content;
+}
+
+.selectGestionCita{
+    width: 142px !important;
+}
+
+@media (max-width:429px)  {
+    .header .logoHeader { padding: 0 10px; }
+    .contenido-inicio{ 
+        padding: 25px 0px 30px 10px;
+        gap: 25px;
+    }  
+
+    .contenido-inicio > div:nth-child(2), .contenido-inicio > div:last-child{
+        margin-left: 10px;
+    }
+
+    .footer-direccion .footer-info-direccion, .footer .footer-contacto{
+        width: 320px;
+    }   
+
+    .txtTituloAgendamiento{
+        font-size: 26px !important;
+    }
+
+    .btnInicio{
+        width: 355px !important;
+        height: 165px !important;
+    }
+
+    .espaciado-horizontal{ 
+        padding: 0 10px; 
+    }
+
+    .espaciado-horizontal .contenido-paso{
+        padding: 35px 20px;
+    }
+    
+    .contenedorTipoPersona > div, 
+    .contenedorTipoAtencion > div{
+        gap: 15px;
+        justify-content: center;
+    }
+
+    .btnTipoPersona, .btnTipoAtencion{        
+        width: 147px !important;
+        height: 150px !important;
+        padding: 10px 5px !important;
+    }
+
+    .contentImgTipoPersona, .contentImgTipoAtencion{
+        width: 60px;
+        height: 60px;
+    }
+    
+    .espaciado-categorias > div, .espaciado-categorias > div > div {
+        gap: 8px;
+        justify-content: center;        
+    }
+
+    .btnCategoria {
+        gap: 9px;
+        width: 110px !important;
+        height: 112px !important;
+        padding: 6px 10px !important;
+    }
+
+    .btnCategoria span{
+        font-size: 12px !important;
+    }
+	
+    .btnDatosGestionCita{
+        padding: 14px 10px !important;
+    }
+
+    .progress{
+        width: 350px;
+        height: 12px;
+    }
+
+    .checkBoxTerminos span{
+        font-size: 14px !important;
+        line-height: 23px !important;
+    }
+    
+    .contenido-Pantalla{
+        gap: 25px;
+    }
+
+    .contenedor-info-paso{    
+        flex-direction: column;    
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .contenedor-info-paso > .contenido-info-paso{
+        margin-right: auto;
+    }
+
+    .contenedor-info-paso .info-paso{
+        max-width: 322px;
+    }
+
+    .tamanio-modal, .tamanio-modal-archivos{
+        max-width: 350px;
+    }
+
+    .infoadicional-archivos{
+        font-size: 13px;
+        line-height: 17px;
+    }
+
+    .contenedor-modal{
+        padding: 15px;
+        top: 50%;
+        transform: translateY(-85%);
+    }
+    
+    div[rol="control"][nombrecontrol="btnGuardarArchivos"]{
+        padding-bottom: 15px;
+    }
+    
+    .modal-small{
+        top: 40%;
+        transform: translateY(-70%);
+    }
+
+    .tamanio-modal-archivos, .modal-error{
+        top: 60%;
+        transform: translateY(-80%);
+    }
+
+    .file-name{
+        max-width: 215px;
+    }
+
+    .drop-section{
+        gap: 20px;
+        padding: 10px;
+    }
+
+    .contenedor-botones-modal{
+        gap: 10px;
+    }
+
+    .tamanio-maximo-contenido, .notificacion-color, .contenido-archivos{
+        max-width: 322px !important;
+        width: 322px !important;
+    }
+
+    .headerCodigo{
+        width: 130px !important;
+        height: 52px !important;
+        justify-content: center !important;
+    }
+
+    .columnaCodigo{
+        width: 130px !important;
+        padding: 14px !important;
+    }
+    
+    .headerFecha{
+        width: 110px !important;
+        height: 52px !important;
+        justify-content: center !important;
+    }
+
+    .headerAcciones{
+        width: 115px !important;
+        height: 52px !important;
+    }
+
+    .columnaAcciones{
+        gap: 11px;
+    }
+}
+
+@media (min-width:430px)  { 
+    .header .logoHeader { padding: 0 20px; }    
+    .contenido-inicio{ 
+        padding: 30px 0px 30px 15px; 
+        gap: 42px;
+    }
+
+    .contenido-inicio > div:nth-child(2), .contenido-inicio > div:last-child{
+        margin-left: 15px;
+    }
+
+    .btnInicio{
+        width: 375px !important;
+        height: 175px !important;
+    }
+
+    .txtTituloAgendamiento{
+        font-size: 28px !important;
+    }
+    
+    .espaciado-horizontal{ padding: 0 15px; }
+    .espaciado-horizontal .contenido-paso{
+        padding: 40px 25px;
+    }
+    
+    .contenedorTipoPersona > div, 
+    .contenedorTipoAtencion > div{
+        gap: 20px;
+        justify-content: center;
+    }
+
+    .btnTipoPersona, .btnTipoAtencion{        
+        width: 159px !important;
+        height: 159px !important;
+        padding: 10px 5px !important;
+    }
+    
+    .contentImgTipoPersona, .contentImgTipoAtencion{
+        width: 65px;
+        height: 65px;
+    }
+    
+    .espaciado-categorias > div, .espaciado-categorias > div > div {
+        gap: 8px;
+        justify-content: center;        
+    }
+
+    .btnCategoria {
+        gap: 9px;
+        width: 135px !important;
+        height: 115px !important;
+        padding: 10px 20px !important;
+    }
+
+    .btnCategoria span{
+        font-size: 12.5px !important;
+    }
+
+    .btnDatosGestionCita{
+        padding: 14px 15px !important;
+    }
+
+    .progress{
+        width: 400px;
+        height: 16px;
+    }
+
+    .checkBoxTerminos span{
+        font-size: 15px !important;
+        line-height: 24px !important;
+    }
+
+    .tamanio-maximo-contenido, .notificacion-color, .contenido-archivos{
+        max-width: 338px !important;
+        width: 338px !important;
+    }
+
+    .contenido-Pantalla{
+        gap: 30px;
+    }
+
+    .contenedor-info-paso{    
+        flex-direction: column;    
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .contenedor-info-paso > .contenido-info-paso{
+        margin-right: auto;
+    }
+
+    .contenedor-info-paso .info-paso{
+        max-width: 338px;
+    }
+    
+    .tamanio-modal, .tamanio-modal-archivos{
+        max-width: 395px;
+    }
+
+    .infoadicional-archivos{
+        font-size: 16px;
+        line-height: 20px;
+    }
+
+    .contenedor-modal{
+        padding: 24px;
+        top: 55%;
+        transform: translateY(-70%);
+    }
+
+    div[rol="control"][nombrecontrol="btnGuardarArchivos"]{
+        padding-bottom: 24px;
+    }
+    
+    .modal-archivos{
+        top: 0;
+        transform: none;
+        padding-bottom: 0;
+    }
+
+    .file-name{
+        max-width: 230px;
+    }
+    
+    .modal-small{
+        top: 40%;
+        transform: translateY(-70%);
+    }
+
+    .drop-section{
+        gap: 16px;
+        padding: 20px;
+    }
+
+    .contenedor-botones-modal{
+        gap: 10px;
+    }
+
+    .columnaCodigo{
+        padding: 14px 16px !important;
+    }
+
+    .headerAcciones{
+        width: 140px !important;
+        height: 52px !important;
+    }
+
+    .columnaAcciones{
+        gap: 24px;
+    }
+}
+
+@media (min-width: 576px) {      
+    .contenido-inicio{ padding: 30px 31px 30px 40px; }
+    .espaciado-horizontal{ padding: 0 40px; }
+
+    .contenido-inicio > div:nth-child(2), .contenido-inicio > div:last-child{
+        margin-left: 0;
+    }
+
+    .espaciado-horizontal .contenido-paso{
+        padding: 50px 30px;
+    }
+        
+    .txtTituloAgendamiento{
+        font-size: 32px !important;
+    }
+    
+    .contenedorTipoPersona > div, 
+    .contenedorTipoAtencion > div{
+        gap: 32px;
+        justify-content: center;
+    }
+
+    .btnTipoPersona, .btnTipoAtencion{        
+        width: 200px !important;
+        height: 190px !important;
+        padding: 35px !important;
+    }
+
+    .contentImgTipoPersona, .contentImgTipoAtencion{
+        width: 80px;
+        height: 80px;
+    }
+   
+    .espaciado-categorias > div, .espaciado-categorias > div > div {
+        gap: 30px
+    }
+
+    .btnCategoria{        
+        width: 140px !important;
+        height: 125px !important;
+        padding: 10px !important;
+    }
+
+    .btnCategoria span{
+       font-size: 14px !important;
+       line-height: 18px !important;
+    }
+
+    .progress{
+        width: 525px;
+        height: 16px;
+    }
+
+    .checkBoxTerminos span{
+        font-size: 16px !important;
+        line-height: 25px !important;
+    }
+
+    .tamanio-maximo-contenido, .notificacion-color, .contenido-archivos{
+        max-width: 435px !important;
+        width: 435px !important;
+    }
+
+    .contenedor-info-paso{    
+        flex-direction: row;    
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .contenedor-info-paso .info-paso{
+        max-width: 325px;
+    }
+    
+    .tamanio-modal, .tamanio-modal-archivos{
+        max-width: 520px;
+    }
+
+    .infoadicional-archivos{
+        font-size: 20px;
+        line-height: 24px;
+    }
+
+    .contenedor-modal{
+        top: 45%;
+        transform: translateY(-70%);
+    }
+
+    .modal-archivos{
+        top: 0;
+        transform: none;
+        padding-bottom: 0;
+    }
+
+    .file-name{
+        max-width: 255px;
+    }
+
+    .modal-small{
+        top: 40%;
+        transform: translateY(-70%);
+    }
+
+    .contenedor-botones-modal{
+        gap: 15px;
+    }
+    
+    .headerCodigo{
+        width: 170px !important;
+        height: 52px !important;
+        justify-content: center !important;
+    }
+
+    .headerFecha{
+        width: 145px !important;
+        height: 52px !important;
+        justify-content: center !important;
+    }
+        
+    .headerAcciones{
+        width: 186px !important;
+        height: 52px !important;
+    }
+
+    .headerAcciones, .columnaAcciones{
+        justify-content: center !important;
+    }
+
+    .btnDatosGestionCita{
+        padding: 14px 20px !important;
+    }
+}
+
+/* Medium devices (tablets, 768px and up)*/
+@media (min-width: 768px) {   
+    .contenido-inicio{ padding: 30px 31px 30px 90px; }
+    .espaciado-horizontal{ padding: 0 90px; }
+    .content-progress{ padding: 0 85px;}
+
+    .espaciado-horizontal .contenido-paso{
+        padding: 50px;
+    }
+
+    .btnTipoPersona, .btnTipoAtencion{        
+        width: 230px !important;
+        height: 212px !important;
+        padding: 40px !important;
+    }
+
+    .btnCategoria{        
+        width: 144px !important;
+        height: 136px !important;
+        padding: 16px !important;
+    }
+	
+    .progress{
+        width: 592px;
+        height: 16px;
+    }
+
+    .tamanio-maximo-contenido, .notificacion-color, .contenido-archivos{
+        max-width: 492px !important;
+        width: 492px !important;
+    }
+
+    .contenedor-info-paso .info-paso{
+        max-width: 385px;
+    }
+
+    .tamanio-modal{
+        max-width: 625px;
+    }
+    
+    .contenedor-botones-modal{
+        gap: 30px;
+    }
+
+    .headerOficina{
+        width: 210px !important;
+        height: 52px !important;
+    }
+
+    .headerCodigo{
+        width: 142px !important;
+        height: 52px !important;
+        justify-content: flex-start !important;
+    }
+    
+    .headerFecha{
+        width: 106px !important;
+        height: 52px !important;
+        justify-content: flex-start !important;
+    }
+
+    .headerAcciones, .columnaAcciones{
+        justify-content: flex-start;
+    }
+    
+    .tamanio-modal-archivos{
+        max-width: 650px;
+    }
+
+    .file-name{
+        max-width: 330px;
+    }
+}
+
+/* Large devices (desktops, 992px and up)*/
+@media (min-width: 992px) { 
+    .header .contenido-header{
+        gap: 185px;
+    }
+
+    .footer-direccion .footer-info-direccion, .footer .footer-contacto{
+        width: 275px;
+    }
+
+    .footer .separador-horizontal{
+        height: 325px;
+    }
+
+    .contenido-inicio{ padding: 30px 31px 30px 112px; }
+
+    .espaciado-horizontal{ padding: 0 112px; }
+    .content-progress{ padding: none;}
+    
+    .headerOficina{
+        width: 320px !important;
+        height: 52px !important;
+    }
+
+    .tamanio-modal-archivos{
+        max-width: 835px;
+    }
+
+    .file-name{
+        max-width: 480px;
+    }
+}
+
+/* X-Large devices (large desktops, 1200px and up)*/
+@media (min-width: 1200px) {
+    .header .contenido-header{
+        gap: 306px;
+    }
+
+    .footer-direccion .footer-info-direccion, .footer .footer-contacto{
+        width: 381px;
+    }
+
+    .footer .separador-horizontal{
+        height: 261px;
+    }
+    
+    .headerOficina{
+        width: 551px !important;
+        height: 52px !important;
+    }
+
+    .tamanio-modal-archivos{
+        max-width: 925px;
+    }
+}
+
+/* XX-Large devices (larger desktops, 1400px and up)*/
+@media (min-width: 1400px) {
+    .header .contenido-header{
+        gap: 406px;
+    }
+}
+.k-calendar-td.k-disabled a { display: none !important }
+.calendario .k-button { background: transparent; border-color: transparent; }

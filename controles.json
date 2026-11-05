@@ -1,0 +1,133 @@
+{
+  "globales": {
+    "captchaValido": "boolean",
+    "CargarArchivo": "function",
+    "archivosSeleccionadosObj": "object",
+    "PasoTres": "object",
+    "configTiposDocumento": "object",
+    "kendoVersion": "2023.1.117"
+  },
+  "Ciudades": {
+    "tipoControl": 0,
+    "tieneSeleccionarItem": true,
+    "elementos": [],
+    "id": "control_187",
+    "html": "<div tipo=\"Control\" id=\"control_187\" pantalla=\"PasoDos\" nombre=\"Ciudades\" style=\"position: static; box-sizing: border-box; overflow: hidden; top: 290px; left: 235px; z-index: 3008; transition: 0.75s; width: 100%; height: auto; background-color: rgb(255, 255, 255); background-image: none; opacity: 1; display: flex; padding: 0px; margin: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; align-items: stretch; filter: none; text-shadow: none; box-shadow: none;\"><select class=\"customSelect\" style=\"transition: 0.75s; font-family: Ubuntu; font-size: 16px; color: rgb(56, 65, 73); font-weight: normal; font-style: normal; line-height: 24px; text-shadow: none; box-shadow: none; width: 100%; border-radius: 4px; border-color: rgb(190, 200, 210); appearance: none; padding: 8px 12px;\"></select></div>",
+    "contenedor": null,
+    "kendo": false
+  },
+  "Sedes": {
+    "tipoControl": 0,
+    "tieneSeleccionarItem": true,
+    "elementos": [],
+    "id": "control_188",
+    "html": "<div tipo=\"Control\" id=\"control_188\" pantalla=\"PasoDos\" nombre=\"Sedes\" style=\"position: static; box-sizing: border-box; overflow: hidden; top: 354px; left: 141px; z-index: 3008; transition: 0.75s; width: 100%; height: auto; background-color: rgb(255, 255, 255); background-image: none; opacity: 1; display: flex; padding: 0px; margin: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; align-items: stretch; filter: none; text-shadow: none; box-shadow: none;\"><select class=\"customSelect\" style=\"transition: 0.75s; font-family: Ubuntu; font-size: 16px; color: rgb(56, 65, 73); font-weight: normal; font-style: normal; line-height: 24px; text-shadow: none; box-shadow: none; width: 100%; border-radius: 4px; border-color: rgb(190, 200, 210); appearance: none; padding: 8px 12px;\"></select></div>",
+    "contenedor": null,
+    "kendo": false
+  },
+  "Calendario": {
+    "tieneSeleccionarItem": false,
+    "elementos": [],
+    "id": "control_193",
+    "html": "<div tipo=\"Control\" id=\"control_193\" pantalla=\"PasoDos\" nombre=\"Calendario\" class=\"calendario\" style=\"position: static; box-sizing: border-box; overflow: hidden; top: 418px; left: 349px; z-index: 3018; transition: 0.75s; width: auto; height: auto; background-color: rgba(255, 255, 255, 0); background-image: none; opacity: 1; display: flex; padding: 0px; margin: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; text-align: center; justify-content: center; align-items: center; filter: none; text-shadow: none; box-shadow: none;\"><div id=\"calendar\" style=\"transform: scale(1); border-width: medium; border-style: none; border-color: currentcolor; border-image: none;\"></div></div>",
+    "contenedor": "<div id=\"calendar\" style=\"transform: scale(1); border-width: medium; border-style: none; border-color: currentcolor; border-image: none;\"></div>",
+    "kendo": false
+  },
+  "Horas": {
+    "tipoControl": 0,
+    "tieneSeleccionarItem": true,
+    "elementos": [
+      {
+        "Llave": "1",
+        "claves": [
+          "Llave",
+          "Texto",
+          "TextoAyuda",
+          "Contenido",
+          "IndiceONivel",
+          "Descripcion",
+          "Ayuda"
+        ],
+        "texto": "Cali"
+      }
+    ],
+    "id": "control_189",
+    "html": "<div tipo=\"Control\" id=\"control_189\" pantalla=\"PasoDos\" nombre=\"Horas\" style=\"position: static; box-sizing: border-box; overflow: hidden; top: 510px; left: 144px; z-index: 3008; transition: 0.75s; width: 100%; height: auto; background-color: rgb(255, 255, 255); background-image: none; opacity: 1; display: flex; padding: 0px; margin: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; align-items: stretch; filter: none; text-shadow: none; box-shadow: none;\"><select class=\"customSelect\" style=\"transition: 0.75s; font-family: Ubuntu; font-size: 16px; color: rgb(56, 65, 73); font-weight: normal; font-style: normal; line-height: 24px; text-shadow: none; box-shadow: none; width: 100%; border-radius: 4px; border-color: rgb(190, 200, 210); appearance: none; padding: 8px 12px;\"><option value=\"\"></option><option value=\"1\" style=\"transition: 0.75s; font-family: Ubuntu; font-size: 16px; color: rgb(56, 65, 73); font-weight: normal; font-style: normal; line-height: 24px; text-shadow: none; box-shadow: none;\">Cali</option></select></div>",
+    "contenedor": null,
+    "kendo": false
+  },
+  "TipoDocumento": {
+    "tipoControl": 0,
+    "tieneSeleccionarItem": true,
+    "elementos": [],
+    "id": "control_163",
+    "html": "<div tipo=\"Control\" id=\"control_163\" pantalla=\"PasoTres\" nombre=\"TipoDocumento\" style=\"position: static; box-sizing: border-box; overflow: hidden; top: 192px; left: 223px; z-index: 4008; transition: 0.75s; width: 100%; height: auto; background-color: rgb(255, 255, 255); background-image: none; opacity: 1; display: flex; padding: 0px; margin: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; align-items: stretch; filter: none; text-shadow: none; box-shadow: none;\"><select class=\"customSelect\" style=\"transition: 0.75s; font-family: Ubuntu; font-size: 16px; color: rgb(56, 65, 73); font-weight: normal; font-style: normal; line-height: 24px; text-shadow: none; box-shadow: none; width: 100%; border-radius: 4px; border-color: rgb(190, 200, 210); appearance: none; padding: 8px 12px;\"></select></div>",
+    "contenedor": null,
+    "kendo": false
+  },
+  "DatosCorretos": {
+    "tipoControl": 1,
+    "tieneSeleccionarItem": true,
+    "elementos": [
+      {
+        "Llave": "1",
+        "claves": [
+          "Llave",
+          "Texto",
+          "TextoAyuda",
+          "Contenido",
+          "IndiceONivel",
+          "Descripcion",
+          "Ayuda"
+        ],
+        "texto": "Si"
+      },
+      {
+        "Llave": "2",
+        "claves": [
+          "Llave",
+          "Texto",
+          "TextoAyuda",
+          "Contenido",
+          "IndiceONivel",
+          "Descripcion",
+          "Ayuda"
+        ],
+        "texto": "No"
+      }
+    ],
+    "id": "control_173",
+    "html": "<div tipo=\"Control\" id=\"control_173\" pantalla=\"PasoTres\" nombre=\"DatosCorretos\" style=\"position: static; box-sizing: border-box; overflow: hidden; top: 774px; left: 42px; z-index: 4030; transition: 0.75s; width: auto; height: auto; opacity: 1; display: flex; padding: 0px; margin: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; align-items: stretch; filter: none; text-shadow: none; box-shadow: none;\"><span class=\"customRadioButton\"><label style=\"transition: 0.75s; font-family: Ubuntu; font-size: 16px; color: rgb(75, 86, 97); font-weight: normal; font-style: normal; line-height: 24px; text-shadow: none; box-shadow: none;\"><input type=\"radio\" value=\"1\" name=\"control_173\" checked=\"checked\" style=\"transition: 0.75s; font-family: Ubuntu; font-size: 16px; color: rgb(75, 86, 97); font-weight: normal; font-style: normal; line-height: 24px; text-shadow: none; box-shadow: none;\"><span>Si</span></label><label style=\"transition: 0.75s; font-family: Ubuntu; font-size: 16px; color: rgb(75, 86, 97); font-weight: normal; font-style: normal; line-height: 24px; text-shadow: none; box-shadow: none;\"><input type=\"radio\" value=\"2\" name=\"control_173\" style=\"transition: 0.75s; font-family: Ubuntu; font-size: 16px; color: rgb(75, 86, 97); font-weight: normal; font-style: normal; line-height: 24px; text-shadow: none; box-shadow: none;\"><span>No</span></label></span></div>",
+    "contenedor": null,
+    "kendo": false
+  },
+  "TerminosCondiciones": {
+    "tieneSeleccionarItem": false,
+    "elementos": [],
+    "id": "control_174",
+    "html": "<div tipo=\"Control\" id=\"control_174\" pantalla=\"PasoTres\" nombre=\"TerminosCondiciones\" style=\"position: static; box-sizing: border-box; overflow: hidden; top: 860px; left: 36px; z-index: 4031; transition: 0.75s; width: auto; height: auto; opacity: 1; display: flex; padding: 0px; margin: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; text-align: left; justify-content: flex-start; align-items: center; filter: none; text-shadow: none; box-shadow: none; cursor: pointer;\"><div class=\"checkBoxTerminos\" style=\"display: block; text-align: left; overflow: hidden; white-space: pre-wrap; transition: 0.75s; font-family: Verdana; font-size: 16px; color: rgb(75, 86, 97); font-weight: 400; font-style: normal; line-height: 25px; text-shadow: none; box-shadow: none; cursor: pointer;\"><label><input type=\"checkbox\"><span>Acepto el <a href=\"https://sistematurnos.dian.gov.co/1-PoliticaDatos.pdf\" target=\"_blank\">tratamiento de los datos personales.</a></span></label></div></div>",
+    "contenedor": null,
+    "kendo": false
+  },
+  "tbxNumeroDoc": {
+    "tieneSeleccionarItem": false,
+    "elementos": [],
+    "id": "control_169",
+    "html": "<div tipo=\"Control\" id=\"control_169\" pantalla=\"PasoTres\" nombre=\"tbxNumeroDoc\" style=\"position: static; box-sizing: border-box; overflow: hidden; top: 241px; left: 378px; z-index: 4026; transition: 0.75s; width: auto; height: auto; background-color: rgb(255, 255, 255); background-image: none; opacity: 1; display: flex; padding: 0px; margin: 0px; border-color: rgb(190, 200, 210); border-style: solid; border-width: 1px; border-radius: 4px; align-items: stretch; filter: none; text-shadow: none; box-shadow: none; cursor: pointer;\"><input type=\"text\" maxlength=\"20\" placeholder=\"Escriba el número de documento\" class=\"cajaPlaceholder\" style=\"display: block; appearance: none; border: 0px; transition: 0.75s; font-family: Ubuntu; font-size: 16px; color: rgb(75, 86, 97); font-weight: 400; font-style: normal; line-height: 24px; text-shadow: none; box-shadow: none; padding: 8px 12px; width: 100%;\"></div>",
+    "contenedor": null,
+    "kendo": false
+  },
+  "txtDocumentosCargados": {
+    "tieneSeleccionarItem": false,
+    "elementos": [],
+    "id": "control_178",
+    "html": "<div tipo=\"Control\" id=\"control_178\" pantalla=\"PasoTres\" nombre=\"txtDocumentosCargados\" style=\"position: static; box-sizing: border-box; overflow: hidden; top: 939px; left: 411px; z-index: 4036; transition: 0.75s; width: auto; height: auto; opacity: 1; display: flex; padding: 0px; margin: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; text-align: left; justify-content: flex-start; align-items: center; filter: none; text-shadow: none; box-shadow: none;\"><span style=\"display: block; text-align: left; overflow: hidden; white-space: pre-wrap; transition: 0.75s; font-family: &quot;Work Sans&quot;; font-size: 16px; color: rgb(75, 86, 97); font-weight: 700; font-style: normal; line-height: 18px; text-shadow: none; box-shadow: none;\">0 Documentos cargados</span></div>",
+    "contenedor": null,
+    "kendo": false
+  },
+  "btnSiguientePasoDos": true,
+  "btnSiguientePasoTres": true,
+  "btnAgendar": true,
+  "modalInfo": "",
+  "listaArchivos": true
+}
