@@ -13,17 +13,23 @@ const HOST = new URL(URL_INICIO).host;
 const FORZAR_AVISO = /^(1|true)$/i.test(process.env.FORZAR_AVISO || '');
 const SALIDA = path.join(__dirname, 'salida');
 const ESPERA_RESULTADO_MS = 7000;
-// Ciudades que te sirven (expresión regular, sin importar tildes). La DIAN pone la ciudad al inicio
-// de cada trámite, p. ej.: 'Cali “Solicitud de devolución y/o compensación persona natural”.'
+// Ciudades que te sirven (expresión regular, sin importar tildes) y tu tipo de trámite.
+// La DIAN pone la ciudad al inicio de cada trámite, en dos formatos:
+//   'Cali “Solicitud de devolución y/o compensación persona natural”.'
+//   '"Bogotá - Solicitud de devolución y/o compensación Vehículos eléctricos o Híbridos persona natural'
 const RE_CIUDADES = new RegExp(process.env.CIUDADES || 'Bogot', 'i');
+const RE_TRAMITE = new RegExp(process.env.TRAMITE || 'vehiculo|electric|hibrid', 'i');
 const sinTildes = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const esObjetivo = (c) => !!c && (RE_CIUDADES.test(c) || RE_CIUDADES.test(sinTildes(c)));
+const esTramite = (t) => RE_TRAMITE.test(t || '') || RE_TRAMITE.test(sinTildes(t));
 const unicos = (a) => [...new Set(a.filter(Boolean))];
 const escapar = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const ciudadDe = (tramite) => {
-  const m = /^(.+?)\s*[“"«]/.exec(tramite || '');
+  const t = (tramite || '').replace(/^[\s"“”«»']+/, '');
+  const m = /^(.+?)\s*(?:\s[-–]\s|[“"«])/.exec(t);
   return m ? m[1].trim() : '';
 };
+const etiqueta = (t) => (ciudadDe(t) || '?') + (esTramite(t) ? ' (vehículos)' : '');
 
 // Recorrido real de la página. "opcional": si no aparece, se salta. "espera": segundos máximos.
 // tipo "select": escoge la opción de una lista desplegable en vez de hacer clic.
@@ -367,13 +373,15 @@ async function main() {
       await page.waitForTimeout(1500);
       const tramites = await page.mainFrame().evaluate(opcionesDeTramite).catch(() => []);
       resumen.tramites = tramites;
-      let ciudades = unicos(tramites.map(ciudadDe));
-      const objetivo = tramites.find((t) => esObjetivo(ciudadDe(t)));
-      // Se entra a la pantalla de fecha solo si hay trámite de tu ciudad, o si no se pudo leer ninguna ciudad.
-      const elegido = objetivo || (ciudades.length ? null : tramites[0]);
+      let ciudades = unicos(tramites.map(etiqueta));
+      const objetivo = tramites.find((t) => esObjetivo(ciudadDe(t)) && esTramite(t));
+      const legibles = tramites.some((t) => ciudadDe(t));
+      // Se entra a la pantalla de fecha si está tu trámite en tu ciudad, o si no se pudo leer ninguna ciudad.
+      const elegido = objetivo || (legibles ? null : (tramites.find(esTramite) || tramites[0]));
       if (elegido) {
         const r = await elegir(page, new RegExp('^' + escapar(elegido) + '$'));
         resumen.pasos.push({ paso: 'tramite', encontrado: !!r, texto: r ? r.texto : elegido, como: 'lista' });
+        resumen.tramiteElegido = elegido;
         await page.waitForTimeout(1200);
         const sig = await esperar(page, () => buscar(page, /^siguiente$/i), 15);
         resumen.pasos.push({ paso: 'siguiente', encontrado: !!sig });
@@ -382,10 +390,14 @@ async function main() {
           await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
           await esperar(page, async () => (await lineas(page)).some((l) => /ciudad o municipio, sede, fecha y hora/i.test(l)), 12);
           await page.waitForTimeout(3000);
-          const listas = await page.mainFrame().evaluate(todasLasListas).catch(() => []);
-          for (const l of listas) {
-            if (l.opciones.some((o) => /devoluci/i.test(o))) continue;
-            ciudades = unicos([...ciudades, ...l.opciones.filter((o) => o && o.length < 40)]);
+          if (!legibles) {
+            // Sin ciudad en el trámite: se lee de la lista de ciudades de esta pantalla.
+            const listas = await page.mainFrame().evaluate(todasLasListas).catch(() => []);
+            for (const l of listas) {
+              if (l.opciones.some((o) => /devoluci/i.test(o))) continue;
+              const tipo = esTramite(elegido) ? ' (vehículos)' : '';
+              ciudades = unicos([...ciudades.filter((c) => c !== '?' && c !== '? (vehículos)'), ...l.opciones.filter((o) => o && o.length < 40).map((o) => o + tipo)]);
+            }
           }
           const cal = (await pantalla(page)).find((c) => /^Calendario:/i.test(c));
           if (cal) {
@@ -397,7 +409,7 @@ async function main() {
         }
       }
       resumen.ciudades = ciudades;
-      resumen.ciudadesObjetivo = ciudades.filter(esObjetivo);
+      resumen.ciudadesObjetivo = ciudades.filter((c) => esObjetivo(c) && /\(vehículos\)/.test(c));
       if (dias) resumen.dias = dias;
     }
 
@@ -419,12 +431,15 @@ async function main() {
       } else if (obj.length) {
         resumen.veredicto = 'posible-cita';
         resumen.detalle = `Hay agenda en ${obj.join(', ')}` + (dias && dias.length ? ` (días: ${dias.join(', ')}).` : '.');
-      } else if (resumen.ciudades.length) {
+      } else if (resumen.ciudades.includes('? (vehículos)')) {
+        resumen.veredicto = 'posible-cita';
+        resumen.detalle = 'Hay trámite de vehículos, pero no pude leer la ciudad.';
+      } else if ((resumen.tramites || []).length) {
         resumen.veredicto = 'otras-ciudades';
-        resumen.detalle = `Solo hay agenda en: ${resumen.ciudades.join(', ')}.`;
+        resumen.detalle = `Hay agenda, pero no para vehículos en tu ciudad: ${resumen.ciudades.join(', ')}.`;
       } else {
         resumen.veredicto = 'posible-cita';
-        resumen.detalle = 'Apareció la lista de trámites de devolución, pero no pude leer la ciudad.';
+        resumen.detalle = 'Apareció la lista de trámites de devolución, pero no pude leerla.';
       }
     } else {
       resumen.veredicto = 'sin-cambio';

@@ -3,8 +3,10 @@
 Cada ~5 minutos, GitHub Actions abre https://agendamiento.dian.gov.co en un navegador real y hace
 el recorrido **Agendar cita → Persona natural → Videoatención → Devoluciones**. La lista de trámites
 trae la ciudad al inicio (p. ej. *Cali “Solicitud de devolución y/o compensación persona natural”*):
-solo si aparece una ciudad de `CIUDADES` (por defecto Bogotá) crea un issue con la captura y los días
-del calendario. GitHub lo envía por correo.
+solo si aparece el trámite de `TRAMITE` (vehículos eléctricos o híbridos) en una ciudad de `CIUDADES`
+(Bogotá) crea un issue con la captura y los días del calendario. GitHub lo envía por correo.
+
+Cada corrida revisa `VUELTAS` veces, una cada ~1 minuto, y se detiene apenas encuentra el trámite.
 
 Cada corrida programa la siguiente (cadena). El horario de GitHub solo reinicia la cadena si se corta,
 porque los horarios gratuitos llegan con horas de retraso.
@@ -26,5 +28,5 @@ El robot **no agenda** ni escribe datos personales: solo avisa. La cita la toma 
 ## Ajustes
 
 - Frecuencia: `PAUSA_MIN` en `.github/workflows/vigia.yml`.
-- Ciudad: `CIUDADES` en el workflow y `CIUDAD` en `boton/boton-dian.js`.
+- Ciudad y trámite: `CIUDADES` y `TRAMITE` en el workflow; `CIUDAD` y `TRAMITE` en `boton/boton-dian.js`.
 - Pasos y frases de "sin agenda": constantes `PASOS` y `SIN_CUPO` en `vigia.js`.

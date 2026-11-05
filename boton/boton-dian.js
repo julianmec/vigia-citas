@@ -1,10 +1,11 @@
 // Botón "Cita DIAN" para Safari (marcador).
 // En agendamiento.dian.gov.co hace: Agendar cita → Persona Natural → Videoatención →
-// Devoluciones → trámite de TU ciudad → Siguiente, y te deja en la fecha.
-// Si solo hay agenda en otras ciudades, te lo dice y no avanza.
+// Devoluciones → TU trámite (vehículos) en TU ciudad → Siguiente, y te deja en la fecha.
+// Si solo hay agenda en otras ciudades u otros trámites, te lo dice y no avanza.
 // No escribe datos personales ni toca el CAPTCHA: eso lo haces tú.
 (async () => {
   const CIUDAD = /bogot/i; // tu ciudad
+  const TRAMITE = /veh[i\u00ed]culo|el[e\u00e9]ctric|h[i\u00ed]brid/i; // tu trámite
   const D = document;
   if (!/agendamiento\.dian\.gov\.co$/.test(location.host) && !/^127\.0\.0\.1/.test(location.host)) {
     location.href = 'https://agendamiento.dian.gov.co/';
@@ -21,7 +22,12 @@
   const VERDE = 'rgb(21,128,61)', ROJO = 'rgb(185,28,28)', AMBAR = 'rgb(180,83,9)';
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
-  const ciudadDe = (t) => { const m = /^(.+?)\s*[“"«]/.exec(t || ''); return m ? m[1].trim() : ''; };
+  const ciudadDe = (x) => {
+    const t = (x || '').replace(/^[\s"\u201c\u201d\u00ab\u00bb']+/, '');
+    const m = /^(.+?)\s*(?:\s[-\u2013]\s|[\u201c"\u00ab])/.exec(t);
+    return m ? m[1].trim() : '';
+  };
+  const etiqueta = (x) => (ciudadDe(x) || '?') + (TRAMITE.test(x) ? ' (veh\u00edculos)' : '');
   const vis = (el) => {
     if (!el || !el.getClientRects().length) return false;
     const cs = getComputedStyle(el);
@@ -83,13 +89,14 @@
     }
     if (!lista) { msg('No vi la lista de trámites. Sigue a mano desde aquí.', AMBAR); return; }
 
-    const ciudades = [...new Set(lista.ops.map((o) => ciudadDe(norm(o.text))).filter(Boolean))];
-    let elegida = lista.ops.find((o) => CIUDAD.test(ciudadDe(norm(o.text))));
-    if (!elegida && ciudades.length) {
-      msg('Solo hay agenda en: ' + ciudades.join(', ') + '. En tu ciudad todavía no.', ROJO);
+    const legibles = lista.ops.some((o) => ciudadDe(norm(o.text)));
+    let elegida = lista.ops.find((o) => CIUDAD.test(ciudadDe(norm(o.text))) && TRAMITE.test(o.text));
+    if (!elegida && legibles) {
+      const hay = [...new Set(lista.ops.map((o) => etiqueta(norm(o.text))))];
+      msg('Hay agenda solo en: ' + hay.join(', ') + '. Para vehículos en tu ciudad todavía no.', ROJO);
       return;
     }
-    if (!elegida) elegida = lista.ops.find((o) => /devoluci/i.test(o.text)) || lista.ops[0];
+    if (!elegida) elegida = lista.ops.find((o) => TRAMITE.test(o.text)) || lista.ops[0];
     lista.sel.value = elegida.value;
     lista.sel.dispatchEvent(new Event('input', { bubbles: true }));
     lista.sel.dispatchEvent(new Event('change', { bubbles: true }));
@@ -101,7 +108,7 @@
     const paso2 = await esperar(/^ciudad o municipio/i, 12);
     const donde = ciudadDe(norm(elegida.text)) || 'la ciudad elegida';
     if (paso2) {
-      msg('¡Hay agenda en ' + donde + '! Elige la fecha y la hora; luego tus datos, documentos y "No soy un robot".', VERDE);
+      msg('¡Hay agenda en ' + donde + ' para vehículos! Elige la fecha y la hora; luego tus datos, documentos y "No soy un robot".', VERDE);
       paso2.scrollIntoView({ block: 'start' });
     } else {
       msg('Trámite de ' + donde + ' elegido. Toca Siguiente y elige la fecha y la hora.', AMBAR);

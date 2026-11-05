@@ -27,13 +27,16 @@ concurrency:
 
 env:
   AVISOS: 'on'          # 'off' para pausar los correos (y la alarma del iPhone) sin detener la revisión
-  CIUDADES: 'Bogot'     # ciudades que te sirven (expresión regular); el aviso solo suena si aparece una
-  PAUSA_MIN: '3'        # minutos entre revisiones (además de ~2 min que tarda cada una)
+  CIUDADES: 'Bogot'     # ciudades que te sirven (expresión regular)
+  TRAMITE: 'vehiculo|electric|hibrid'   # tu trámite; el aviso solo suena si aparece en una de tus ciudades
+  VUELTAS: '8'          # revisiones por corrida (los cupos duran pocos minutos)
+  ESPERA_SEG: '30'      # segundos entre revisiones dentro de una corrida (cada una tarda ~30 s)
+  PAUSA_MIN: '0'        # minutos de pausa entre corridas
 
 jobs:
   revisar:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 15
     outputs:
       fin: ${{ steps.fin.outputs.t }}
     steps:
@@ -42,11 +45,27 @@ jobs:
       - name: Instalar dependencias
         run: npm install --no-audit --no-fund
 
-      - name: Revisar agenda
+      - name: Revisar agenda (varias veces; se detiene apenas encuentra tu trámite)
         continue-on-error: true
-        run: node vigia.js
         env:
           FORZAR_AVISO: ${{ inputs.forzar_aviso || (github.event_name == 'push' && contains(github.event.head_commit.message, '[aviso]')) }}
+          EVENTO: ${{ github.event_name }}
+        run: |
+          : > lineas.csv
+          for i in $(seq 1 "$VUELTAS"); do
+            rm -rf salida
+            timeout 210 node vigia.js || true
+            [ -f salida/resumen.json ] || continue
+            jq -r --arg ev "$EVENTO" \
+              '[(now - 18000 | strftime("%Y-%m-%d %H:%M")), $ev, .veredicto, ((.ciudades // []) | join(" / "))] | @csv' \
+              salida/resumen.json >> lineas.csv
+            V=$(jq -r '.veredicto' salida/resumen.json)
+            echo "Revisión $i: $V"
+            [ "$V" = "posible-cita" ] && break
+            [ "$FORZAR_AVISO" = "true" ] && break
+            [ "$i" -lt "$VUELTAS" ] && sleep "$ESPERA_SEG"
+          done
+          true
 
       - name: Publicar capturas e historial (rama "resultados")
         id: publicar
@@ -59,9 +78,7 @@ jobs:
             git show FETCH_HEAD:historial.csv > salida/historial.csv 2>/dev/null || true
           fi
           [ -s salida/historial.csv ] || echo "hora_bogota,evento,veredicto,ciudades" > salida/historial.csv
-          jq -r --arg ev "${{ github.event_name }}" \
-            '[(now - 18000 | strftime("%Y-%m-%d %H:%M")), $ev, .veredicto, ((.ciudades // []) | join(" / "))] | @csv' \
-            salida/resumen.json >> salida/historial.csv
+          cat lineas.csv >> salida/historial.csv 2>/dev/null || true
           { head -n 1 salida/historial.csv; tail -n +2 salida/historial.csv | tail -n 3000; } > h.tmp && mv h.tmp salida/historial.csv
           echo "previo=$PREVIO" >> "$GITHUB_OUTPUT"
           cd salida
@@ -95,7 +112,7 @@ jobs:
             CUERPO="@$DUENO Esto es una **prueba**: así te va a llegar el aviso cuando aparezca agenda. Resultado real de esta revisión: **$V**. Ciudades con agenda: ${OTRAS:-ninguna}."
           elif [ "$V" = "posible-cita" ] && [ "$AVISOS" = "on" ] && [ "$PREVIO" != "posible-cita" ]; then
             TITULO="🚨 Puede haber citas DIAN de devoluciones en ${LUGAR:-tu ciudad} ($HORA)"
-            CUERPO="@$DUENO **Entra ya** a https://agendamiento.dian.gov.co y en Safari toca **••• → Marcadores → Cita DIAN** (te deja en ciudad, sede, fecha y hora). Escoge **${LUGAR:-tu ciudad}**. Ciudades con agenda en esta revisión: ${OTRAS:-no se pudieron leer}."
+            CUERPO="@$DUENO **Entra ya** a https://agendamiento.dian.gov.co y en Safari toca **••• → Marcadores → Cita DIAN**: escoge solo el trámite de **${LUGAR:-tu ciudad}** y te deja en la fecha. Los cupos duran pocos minutos. Agenda en esta revisión: ${OTRAS:-no se pudo leer}."
           elif [ "$V" = "posible-cita" ] && [ "$AVISOS" = "on" ]; then
             # La agenda sigue abierta: hasta 3 recordatorios (uno por revisión) mientras el aviso siga abierto.
             N=$(gh issue list --repo "$REPO" --state open --json number,title \
