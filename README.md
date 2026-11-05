@@ -33,7 +33,11 @@ El robot **no agenda** ni escribe datos personales: solo avisa. La cita la toma 
 
 ## Botón turbo de Safari (`boton/`)
 
-`boton/marcador.txt` es un marcador para Safari. En la página de la DIAN hace todo el agendamiento
+Instalación: el marcador **Cita DIAN** es `boton/marcador-corto.txt`. La página de la DIAN no deja cargar
+código de otros sitios (Content-Security-Policy), así que la primera vez el marcador pide pegar el código
+completo (`boton/codigo.txt`) y lo guarda en el iPhone. `boton/marcador.txt` es la versión todo-en-uno.
+
+El botón En la página de la DIAN hace todo el agendamiento
 menos el "No soy un robot", que toca la persona: trámite de vehículos en Bogotá, primera fecha y hora,
 tipo y número de documento, "datos correctos: Sí", documentos, "Acepto", Siguiente y **Agendar cita**.
 El documento y los archivos se guardan solo en el iPhone (almacenamiento de Safari para la página de la

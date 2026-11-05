@@ -176,7 +176,8 @@
         '<label>Correo<input id="vg-cor" type="email" style="' + campo + '"></label></details>' +
         '<button id="vg-g" style="' + btn + ';background:#15803d;color:#fff">Guardar</button>' +
         '<button id="vg-c" style="' + btn + ';background:#e5e7eb;color:#111">Cancelar</button>' +
-        '<p id="vg-m" style="margin-top:14px;font-weight:600"></p>';
+        '<p id="vg-m" style="margin-top:14px;font-weight:600"></p>' +
+        '<p style="margin-top:28px;font-size:14px"><a href="#" id="vg-r" style="color:#1d4ed8">Reemplazar el c\u00f3digo del bot\u00f3n (para instalar una versi\u00f3n nueva)</a></p>';
       D.body.appendChild(o);
       const $ = (id) => o.querySelector('#' + id);
       const tipos = W.configTiposDocumento || { 2: { Documento: 'La cédula de ciudadanía' }, 3: { Documento: 'La cédula de extranjería' }, 7: { Documento: 'El pasaporte' } };
@@ -196,6 +197,12 @@
       $('vg-d').textContent = guardados.length ? 'Guardados: ' + guardados.map((d) => d.name).join(', ') + '. Elige archivos solo si quieres reemplazarlos.' : 'Aún no hay documentos guardados.';
       const cerrar = (r) => { o.remove(); resolver(r); };
       $('vg-c').onclick = () => cerrar(null);
+      $('vg-r').onclick = (e) => {
+        e.preventDefault();
+        try { localStorage.removeItem('vigiaCodigoDIAN'); } catch (x) { /* ignorar */ }
+        cerrar(null);
+        msg('Listo. Toca Cita DIAN y pega el c\u00f3digo nuevo.', AMBAR);
+      };
       $('vg-g').onclick = async () => {
         const m = $('vg-m');
         const n = norm($('vg-n').value).replace(/[.\s,]/g, '').toUpperCase();
