@@ -125,7 +125,12 @@
     r.onsuccess = () => ok(r.result);
     r.onerror = () => mal(r.error);
   });
-  const docsLeer = async () => {
+  const conLimite = (pr, ms) => Promise.race([pr, new Promise((_, mal) => setTimeout(() => mal(new Error('tiempo')), ms))]);
+  const CLAVE_DOCS = 'vigiaDocsDIAN';
+  const aBase64 = (buf) => { let s = ''; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
+  const deBase64 = (b64) => { const s = atob(b64); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b.buffer; };
+  const docsLeerLocal = () => { try { return (JSON.parse(localStorage.getItem(CLAVE_DOCS) || '[]') || []).map((d) => ({ name: d.name, type: d.type, data: deBase64(d.b64) })); } catch (e) { return []; } };
+  const docsLeerIDB = async () => {
     try {
       const db = await abrirDB();
       return await new Promise((ok) => {
@@ -136,9 +141,12 @@
       });
     } catch (e) { return []; }
   };
-  const docsGuardar = async (files) => {
-    const datos = [];
-    for (const f of files) datos.push({ name: f.name, type: f.type || 'application/octet-stream', data: await f.arrayBuffer() });
+  const docsLeer = async () => {
+    let d = [];
+    try { d = await conLimite(docsLeerIDB(), 2500); } catch (e) { d = []; }
+    return d.length ? d : docsLeerLocal();
+  };
+  const docsGuardarIDB = async (datos) => {
     const db = await abrirDB();
     await new Promise((ok, mal) => {
       const tx = db.transaction('docs', 'readwrite');
@@ -148,6 +156,19 @@
       tx.oncomplete = ok;
       tx.onerror = () => mal(tx.error);
     });
+  };
+  const docsGuardar = async (files) => {
+    const datos = [];
+    for (const f of files) datos.push({ name: f.name, type: f.type || 'application/octet-stream', data: await f.arrayBuffer() });
+    try {
+      await conLimite(docsGuardarIDB(datos), 8000);
+      try { localStorage.removeItem(CLAVE_DOCS); } catch (e) { /* ignorar */ }
+    } catch (e) {
+      // Respaldo si el almacenamiento de archivos de Safari no responde: localStorage (hasta ~3,5 MB en total).
+      const total = datos.reduce((n, d) => n + d.data.byteLength, 0);
+      if (total > 3.5 * 1024 * 1024) throw new Error('Safari no dej\u00f3 guardar los archivos y pesan m\u00e1s de 3,5 MB en total. Elige menos o m\u00e1s livianos.');
+      localStorage.setItem(CLAVE_DOCS, JSON.stringify(datos.map((d) => ({ name: d.name, type: d.type, b64: aBase64(d.data) }))));
+    }
     return datos.length;
   };
 
@@ -155,7 +176,7 @@
     W.__vigiaCorrida = 0; // detener cualquier corrida mientras se configura
     return new Promise(async (resolver) => {
       const cfg = leerCfg() || {};
-      const guardados = await docsLeer();
+      let guardados = [];
       const viejo = D.getElementById('vigia-config');
       if (viejo) viejo.remove();
       const o = D.createElement('div');
@@ -194,12 +215,16 @@
       $('vg-nom').value = cfg.nom || '';
       $('vg-cel').value = cfg.cel || '';
       $('vg-cor').value = cfg.cor || '';
-      $('vg-d').textContent = guardados.length ? 'Guardados: ' + guardados.map((d) => d.name).join(', ') + '. Elige archivos solo si quieres reemplazarlos.' : 'Aún no hay documentos guardados.';
+      $('vg-d').textContent = 'Revisando documentos guardados\u2026';
+      docsLeer().then((g) => {
+        guardados = g;
+        $('vg-d').textContent = g.length ? 'Guardados: ' + g.map((d) => d.name).join(', ') + '. Elige archivos solo si quieres reemplazarlos.' : 'A\u00fan no hay documentos guardados.';
+      });
       const cerrar = (r) => { o.remove(); resolver(r); };
       $('vg-c').onclick = () => cerrar(null);
       $('vg-r').onclick = (e) => {
         e.preventDefault();
-        try { localStorage.removeItem('vigiaCodigoDIAN'); } catch (x) { /* ignorar */ }
+        try { localStorage.removeItem('vigiaCodigoDIAN2'); } catch (x) { /* ignorar */ }
         cerrar(null);
         msg('Listo. Toca Cita DIAN y pega el c\u00f3digo nuevo.', AMBAR);
       };

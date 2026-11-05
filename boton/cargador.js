@@ -2,7 +2,7 @@
 // así que el código completo del botón se pega UNA vez y queda guardado en este iPhone.
 // Si el código guardado está incompleto o dañado, lo borra y vuelve a pedirlo.
 (() => {
-  const K = 'vigiaCodigoDIAN', LARGO = 15026, d = document, W = window;
+  const K = 'vigiaCodigoDIAN2', LARGO = 16039, d = document, W = window;
   if (!/agendamiento\.dian\.gov\.co$/.test(location.host) && !/^127\.0\.0\.1/.test(location.host)) { location.href = 'https://agendamiento.dian.gov.co/'; return; }
   const correr = (t) => {
     delete W.__vigiaActivo;
@@ -13,6 +13,7 @@
     W.removeEventListener('error', err);
     return !fallo && !!W.__vigiaActivo;
   };
+  try { localStorage.removeItem('vigiaCodigoDIAN'); } catch (e) { /* versión anterior */ }
   let c = null, aviso = '';
   try { c = localStorage.getItem(K); } catch (e) { /* sin almacenamiento */ }
   if (c) {

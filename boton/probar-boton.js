@@ -39,7 +39,7 @@ const codigo = fs.readFileSync(path.join(__dirname, 'codigo.txt'), 'ascii');
     await page.evaluate(() => localStorage.setItem('vigiaCitaDIAN', JSON.stringify({ t: '2', n: '1' })));
     // Instalación como lo hará la persona: marcador corto → pegar el código → Guardar.
     await page.evaluate((u) => { const a = document.createElement('a'); a.href = u; document.body.appendChild(a); a.click(); a.remove(); }, url);
-    res.instalado = await page.evaluate(() => (localStorage.getItem('vigiaCodigoDIAN') || '').length);
+    res.instalado = await page.evaluate(() => (localStorage.getItem('vigiaCodigoDIAN2') || '').length);
     let t = '';
     for (let i = 0; i < 120; i++) {
       t = await page.evaluate(() => { const b = document.getElementById('vigia-banner'); return b ? `${b.textContent} [${b.style.background}]` : ''; });
@@ -49,7 +49,7 @@ const codigo = fs.readFileSync(path.join(__dirname, 'codigo.txt'), 'ascii');
     res.banner = t;
     await page.screenshot({ path: path.join(SALIDA, 'boton.png') }).catch(() => {});
     // Detener el botón antes de cualquier dato.
-    await page.evaluate(() => { window.__vigiaCorrida = 0; localStorage.removeItem('vigiaCitaDIAN'); localStorage.removeItem('vigiaCodigoDIAN'); });
+    await page.evaluate(() => { window.__vigiaCorrida = 0; localStorage.removeItem('vigiaCitaDIAN'); localStorage.removeItem('vigiaCodigoDIAN2'); });
   } catch (e) {
     res.error = e.message;
   }
