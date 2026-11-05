@@ -30,3 +30,12 @@ El robot **no agenda** ni escribe datos personales: solo avisa. La cita la toma 
 - Frecuencia: `PAUSA_MIN` en `.github/workflows/vigia.yml`.
 - Ciudad y trámite: `CIUDADES` y `TRAMITE` en el workflow; `CIUDAD` y `TRAMITE` en `boton/boton-dian.js`.
 - Pasos y frases de "sin agenda": constantes `PASOS` y `SIN_CUPO` en `vigia.js`.
+
+## Botón turbo de Safari (`boton/`)
+
+`boton/marcador.txt` es un marcador para Safari. En la página de la DIAN hace todo el agendamiento
+menos el "No soy un robot", que toca la persona: trámite de vehículos en Bogotá, primera fecha y hora,
+tipo y número de documento, "datos correctos: Sí", documentos, "Acepto", Siguiente y **Agendar cita**.
+El documento y los archivos se guardan solo en el iPhone (almacenamiento de Safari para la página de la
+DIAN); la primera vez, o tocando ⚙︎ en la franja, se abre la configuración.
+
