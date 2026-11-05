@@ -21,7 +21,8 @@ jobs:
           B=https://agendamiento.dian.gov.co
           UA="Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
           mkdir -p out/js out/plantillas && cd out
-          curl -sSL -A "$UA" "$B/" -o index.html
+          curl -sSL -A "$UA" "$B/" -o index.html -D cabeceras.txt
+          grep -i 'content-security\|x-frame\|x-content-type' cabeceras.txt || echo 'sin CSP ni X-Frame-Options' >> cabeceras.txt
           grep -oE '(src|href)="[^"]+\.(js|css)[^"]*"|(src|href)="/bundles/[^"]+"' index.html | sed -E 's/^(src|href)="//; s/"$//' | sort -u > lista.txt
           cat lista.txt
           while read -r u; do
