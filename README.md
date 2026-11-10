@@ -6,7 +6,7 @@ trae la ciudad al inicio (p. ej. *Cali “Solicitud de devolución y/o compensac
 solo si aparece el trámite de `TRAMITE` (vehículos eléctricos o híbridos) en una ciudad de `CIUDADES`
 (Bogotá) crea un issue con la captura y los días del calendario. GitHub lo envía por correo.
 
-Cada corrida revisa `VUELTAS` veces, una cada ~1 minuto, y se detiene apenas encuentra el trámite.
+Revisa una vez cada `CADA_SEG` (40 s) solo entre `HORA_INI` y `HORA_FIN` (7:00–16:00 hora de Bogotá); fuera de ese horario descansa. Se detiene apenas encuentra el trámite.
 
 Cada corrida programa la siguiente (cadena). El horario de GitHub solo reinicia la cadena si se corta,
 porque los horarios gratuitos llegan con horas de retraso.

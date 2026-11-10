@@ -29,9 +29,11 @@ env:
   AVISOS: 'on'          # 'off' para pausar los correos (y la alarma del iPhone) sin detener la revisión
   CIUDADES: 'Bogot'     # ciudades que te sirven (expresión regular)
   TRAMITE: 'vehiculo|electric|hibrid'   # tu trámite; el aviso solo suena si aparece en una de tus ciudades
-  VUELTAS: '8'          # revisiones por corrida (los cupos duran pocos minutos)
-  ESPERA_SEG: '15'      # segundos entre revisiones dentro de una corrida (cada una tarda ~10-30 s)
-  PAUSA_MIN: '0'        # minutos de pausa entre corridas
+  VUELTAS: '16'         # revisiones por corrida (~11 min)
+  CADA_SEG: '40'        # una revisión cada 40 s (se descuenta lo que tarda cada una)
+  HORA_INI: '7'         # solo revisa entre 7:00 y 16:00 (hora de Bogotá)
+  HORA_FIN: '16'
+  PAUSA_MIN: '0'        # minutos de pausa entre corridas (dentro del horario)
 
 jobs:
   revisar:
@@ -53,6 +55,12 @@ jobs:
         run: |
           : > lineas.csv
           for i in $(seq 1 "$VUELTAS"); do
+            H=$(TZ=America/Bogota date +%-H)
+            if [ "$H" -lt "$HORA_INI" ] || [ "$H" -ge "$HORA_FIN" ]; then
+              # En pruebas manuales ([aviso] o "forzar") se revisa aunque sea fuera de horario.
+              [ "$FORZAR_AVISO" = "true" ] || { echo "Fuera de horario ($H h)"; break; }
+            fi
+            T0=$(date +%s)
             rm -rf salida
             timeout 210 node vigia.js || true
             [ -f salida/resumen.json ] || continue
@@ -63,7 +71,8 @@ jobs:
             echo "Revisión $i: $V"
             [ "$V" = "posible-cita" ] && break
             [ "$FORZAR_AVISO" = "true" ] && break
-            [ "$i" -lt "$VUELTAS" ] && sleep "$ESPERA_SEG"
+            FALTA=$(( CADA_SEG - ( $(date +%s) - T0 ) ))
+            [ "$i" -lt "$VUELTAS" ] && [ "$FALTA" -gt 0 ] && sleep "$FALTA"
           done
           true
 
@@ -147,6 +156,10 @@ jobs:
           FIN: ${{ needs.revisar.outputs.fin }}
         run: |
           FIN=${FIN:-$(date +%s)}
+          H=$(TZ=America/Bogota date +%-H)
+          if [ "$H" -lt "$HORA_INI" ] || [ "$H" -ge "$HORA_FIN" ]; then
+            PAUSA_MIN=8   # fuera de horario: solo se despierta de vez en cuando
+          fi
           FALTA=$(( PAUSA_MIN * 60 - ( $(date +%s) - FIN ) ))
           [ "$FALTA" -gt 0 ] && sleep "$FALTA"
           for i in 1 2 3 4 5; do
