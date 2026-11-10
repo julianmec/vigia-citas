@@ -68,6 +68,16 @@
     }
     el.click();
   };
+  // Reintenta encontrar y pulsar un "Siguiente" hasta que la pantalla avance (DIAN lenta/saturada).
+  const reclic = async (hallar, llego, seg) => {
+    for (let i = 0; i < 3; i++) {
+      const s = await hasta(hallar, i ? 4 : seg);
+      if (s) clic(s);
+      if (!llego) return !!s;
+      if (await hasta(llego, 8)) return true;
+    }
+    return false;
+  };
   const buscar = (re) => {
     let mejor = null, largo = 1e9;
     for (const el of D.body.querySelectorAll('*')) {
@@ -262,7 +272,7 @@
       if (ya.has(d.name)) { n++; continue; }
       try { W.CargarArchivo(new File([d.data], d.name, { type: d.type })); n++; } catch (e) { /* seguir con los demás */ }
     }
-    await hasta(() => !W.archivosSeleccionadosObj || W.archivosSeleccionadosObj.files.every((f) => f.base64), 15);
+    await hasta(() => !W.archivosSeleccionadosObj || W.archivosSeleccionadosObj.files.every((f) => f.base64), 25);
     const t = caja('PasoTres', 'txtDocumentosCargados');
     const sp = t && (t.querySelector('span') || t);
     if (sp && n) sp.textContent = n + ' Documentos cargados';
@@ -278,10 +288,10 @@
       clic(el);
       await sleep(350);
     };
-    if (!buscar(/^persona natural$/i)) await paso('Abriendo Agendar cita', /^agendar cita$/i, 15);
-    await paso('Persona Natural', /^persona natural$/i, 15);
-    await paso('Videoatención', /^video ?atenci[oó]n$/i, 15);
-    await paso('Devoluciones', /^devoluciones\.?$/i, 15);
+    if (!buscar(/^persona natural$/i)) await paso('Abriendo Agendar cita', /^agendar cita$/i, 25);
+    await paso('Persona Natural', /^persona natural$/i, 25);
+    await paso('Videoatención', /^video ?atenci[oó]n$/i, 25);
+    await paso('Devoluciones', /^devoluciones\.?$/i, 25);
     msg('Revisando si hay agenda…');
     const noHay = () => /no se encontraron especialidades|no (hay|existen?) .{0,40}(disponib|agenda|cita)/i.test(norm(D.body.innerText));
     const lista = await hasta(() => {
@@ -292,7 +302,7 @@
         if (ops.some((o) => /devoluci/i.test(o.text))) return { s, ops };
       }
       return null;
-    }, 15);
+    }, 25);
     if (lista === 'no') { msg('Aún no hay agenda en ninguna ciudad. Intenta de nuevo en unos minutos.', ROJO); return false; }
     if (!lista) throw new Error('lista de trámites');
     const legibles = lista.ops.some((o) => ciudadDe(norm(o.text)));
@@ -308,8 +318,7 @@
     lista.s.dispatchEvent(new Event('change', { bubbles: true }));
     await sleep(500);
     msg('Siguiente…');
-    const sig = await hasta(() => boton('botonesPasoUno', 'btnSiguiente') || buscar(/^siguiente$/i), 8);
-    if (sig) clic(sig);
+    await reclic(() => boton('botonesPasoUno', 'btnSiguiente') || buscar(/^siguiente$/i), () => pantalla('PasoDos'), 20);
     return true;
   }
 
@@ -324,49 +333,47 @@
 
   async function pasoDos() {
     msg('Eligiendo ciudad, fecha y hora…', MORADO);
-    if (await hasta(() => opciones('PasoDos', 'Ciudades').length, 10)) {
+    if (await hasta(() => opciones('PasoDos', 'Ciudades').length, 20)) {
       elegirLista('PasoDos', 'Ciudades', CIUDAD);
       await sleep(600);
     }
-    if (await hasta(() => vis(caja('PasoDos', 'Sedes')) && opciones('PasoDos', 'Sedes').length, 2)) {
+    if (await hasta(() => vis(caja('PasoDos', 'Sedes')) && opciones('PasoDos', 'Sedes').length, 15)) {
       elegirLista('PasoDos', 'Sedes');
       await sleep(600);
     }
     const bf = caja('PasoDos', 'btnFecha');
     if (bf && vis(bf)) { clic(bf); await sleep(400); }
-    let dia = await hasta(primerDia, 8);
+    let dia = await hasta(primerDia, 20);
     for (let i = 0; !dia && i < 2; i++) {
       const sig = D.querySelector('#calendar .k-calendar-nav-next, #calendar .k-nav-next, #calendar [aria-label*="Next" i], #calendar [aria-label*="Siguiente" i]');
       if (!sig) break;
       clic(sig);
-      dia = await hasta(primerDia, 3);
+      dia = await hasta(primerDia, 8);
     }
     if (!dia) throw new Error('fecha');
     const fecha = norm((dia.closest('td') || dia).getAttribute('title') || dia.getAttribute('title') || dia.textContent);
     clic(dia);
     const HORA = /\d{1,2}:\d{2}/;
-    if (!await hasta(() => opciones('PasoDos', 'Horas').some((o) => HORA.test(o.text)), 12)) throw new Error('hora');
+    if (!await hasta(() => opciones('PasoDos', 'Horas').some((o) => HORA.test(o.text)), 25)) throw new Error('hora');
     const h = elegirLista('PasoDos', 'Horas', HORA);
     await sleep(500);
-    const sig = await hasta(() => boton('botonesPasoDos', 'btnSiguiente'), 6) || D.querySelector('div[contenido="botonesPasoDos"] > div[nombreControl="btnSiguiente"]');
-    if (!sig) throw new Error('Siguiente del paso 2');
-    clic(sig);
+    if (!await reclic(() => boton('botonesPasoDos', 'btnSiguiente') || D.querySelector('div[contenido="botonesPasoDos"] > div[nombreControl="btnSiguiente"]'), () => pantalla('PasoTres'), 15)) throw new Error('Siguiente del paso 2');
     return (fecha ? fecha + ' ' : '') + (h ? norm(h.text) : '');
   }
 
   async function pasoTres(cfg) {
-    const cap = await hasta(() => pantalla('PasoTres') && caja('PasoTres', 'Captcha'), 15);
+    const cap = await hasta(() => pantalla('PasoTres') && caja('PasoTres', 'Captcha'), 30);
     if (!cap) throw new Error('paso 3');
     const nDocs = await cargarDocs();
     try { cap.scrollIntoView({ block: 'center' }); } catch (e) { /* ignorar */ }
     msg('👉 Toca "No soy un robot". Después yo lleno todo y agendo.', MORADO);
     if (!await hasta(() => W.captchaValido === true, 600)) throw new Error('No soy un robot');
     msg('Llenando tus datos' + (nDocs ? ' y ' + nDocs + ' documento(s)' : '') + '…', MORADO);
-    if (await hasta(() => opciones('PasoTres', 'TipoDocumento').length, 6)) {
+    if (await hasta(() => opciones('PasoTres', 'TipoDocumento').length, 20)) {
       elegirLista('PasoTres', 'TipoDocumento', /c[eé]dula de ciudadan/i, cfg.t);
       await sleep(400);
     }
-    const inp = await hasta(() => { const i = D.querySelector('div[pantalla="PasoTres"][nombre="tbxNumeroDoc"] input'); return i && vis(i) && i; }, 6);
+    const inp = await hasta(() => { const i = D.querySelector('div[pantalla="PasoTres"][nombre="tbxNumeroDoc"] input'); return i && vis(i) && i; }, 20);
     if (!inp) throw new Error('número de documento');
     ponerTexto(inp, cfg.n);
     const abierto = (sel) => { const el = D.querySelector(sel); return el && vis(el) && !el.classList.contains('contenidoOculto'); };
@@ -374,7 +381,7 @@
       if (abierto('div[contenido="usuarioEncontrado"]')) return 'encontrado';
       if (abierto('div[contenido="nombre"]') || abierto('div[contenido="contacto"]')) return 'nuevo';
       return null;
-    }, 12);
+    }, 20);
     const pon = (n, v) => { const i = D.querySelector('div[pantalla="PasoTres"][nombre="' + n + '"] input'); if (i && v && !i.value) ponerTexto(i, v); return !!(i && i.value); };
     if (r === 'encontrado') {
       const c = ctrl('PasoTres', 'DatosCorretos');
@@ -392,9 +399,8 @@
     const chk = D.querySelector('.checkBoxTerminos input[type="checkbox"]');
     if (chk && !chk.checked) chk.click();
     await sleep(300);
-    const sig = await hasta(() => boton('botonesPasoTres', 'btnSiguiente'), 4) || D.querySelector('div[contenido="botonesPasoTres"] > div[nombreControl="btnSiguiente"]');
-    if (!sig) throw new Error('Siguiente del paso 3');
-    clic(sig);
+    const verErr = () => { const e = D.querySelector('div[pantalla="PasoTres"][nombre="txtErrorFormulario"] span'); return e && norm(e.textContent); };
+    if (!await reclic(() => boton('botonesPasoTres', 'btnSiguiente') || D.querySelector('div[contenido="botonesPasoTres"] > div[nombreControl="btnSiguiente"]'), () => pantalla('PasoCuatro') || verErr(), 15)) throw new Error('Siguiente del paso 3');
     await sleep(800);
     const err = D.querySelector('div[pantalla="PasoTres"][nombre="txtErrorFormulario"] span');
     if (pantalla('PasoTres') && err && norm(err.textContent)) { msg('Falta algo en el paso 3: ' + norm(err.textContent) + '. Corrígelo y toca Siguiente; yo agendo en el paso 4.', AMBAR); return false; }
@@ -432,7 +438,7 @@
     if (!pantalla('PasoTres')) {
       if (!pantalla('PasoDos')) {
         if (!await pasoUno()) return;
-        if (!await hasta(() => pantalla('PasoDos'), 12)) throw new Error('paso 2');
+        if (!await hasta(() => pantalla('PasoDos'), 20)) throw new Error('paso 2');
       }
       detalle = await pasoDos();
     }
